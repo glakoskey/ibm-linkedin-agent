@@ -17,13 +17,13 @@
     }
     @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
     @keyframes glow { 0%,100% { box-shadow:0 0 20px rgba(10,102,194,0.3); } 50% { box-shadow:0 0 40px rgba(0,180,216,0.5); } }
+    @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: #0a1628; }
     ::-webkit-scrollbar-thumb { background: #0a66c2; border-radius: 2px; }
 
     .wrap { max-width: 800px; margin: 0 auto; }
-
-    /* Header */
     .header { display:flex; align-items:center; gap:14px; margin-bottom:24px; }
     .header-icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#0a66c2,#00b4d8); display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 6px 20px rgba(10,102,194,0.4); flex-shrink:0; }
     .header-title { font-size:21px; font-weight:700; background:linear-gradient(135deg,#7ec8e3,#fff 55%,#5ab8d8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
@@ -32,7 +32,6 @@
     .badge-dot { width:6px; height:6px; border-radius:50%; background:#00d46a; }
     .badge-text { font-size:11px; color:#00d46a; font-family:'IBM Plex Mono',monospace; }
 
-    /* Cards */
     .grid { display:grid; gap:16px; }
     .card { background:linear-gradient(135deg,#0a1628,#0d1f38); border:1px solid #1a2a3a; border-radius:16px; padding:20px; }
     .card-title { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
@@ -40,7 +39,18 @@
     .section-label { font-size:12px; font-weight:600; color:#7ec8e3; letter-spacing:0.1em; text-transform:uppercase; }
     .sub-label { font-size:11px; color:#3a5a70; margin-bottom:9px; }
 
-    /* Articles */
+    /* Loading state */
+    .loading-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; padding:32px; }
+    .spinner { width:36px; height:36px; border:3px solid #1a2a3a; border-top-color:#0a66c2; border-radius:50%; animation:spin 0.9s linear infinite; }
+    .loading-text { font-size:13px; color:#3a5a70; font-family:'IBM Plex Mono',monospace; animation:pulse 1.5s ease infinite; }
+
+    /* Error state */
+    .error-wrap { padding:20px; text-align:center; }
+    .error-icon { font-size:32px; margin-bottom:10px; }
+    .error-msg { font-size:13px; color:#ff6b6b; margin-bottom:12px; }
+    .retry-btn { padding:9px 20px; border-radius:8px; background:rgba(10,102,194,0.2); border:1px solid #0a66c2; color:#7ec8e3; font-size:13px; cursor:pointer; font-family:'IBM Plex Sans',sans-serif; }
+    .retry-btn:hover { filter:brightness(1.1); }
+
     .article-list { display:grid; gap:7px; }
     .article-card { padding:12px 14px; border-radius:10px; cursor:pointer; background:#071020; border:1px solid #1a2a3a; transition:all 0.18s; }
     .article-card:hover { border-color:#0a66c2; background:rgba(10,102,194,0.08); }
@@ -53,7 +63,6 @@
     .article-summary { font-size:11px; color:#3a5a70; margin-bottom:3px; }
     .article-date { font-size:10px; color:#00d46a; font-family:'IBM Plex Mono',monospace; }
 
-    /* Tones */
     .tone-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px; }
     .tone-btn { padding:9px 8px; border-radius:8px; cursor:pointer; border:1px solid #1a2a3a; background:#071020; color:#3a5a70; text-align:left; transition:all 0.2s; font-family:'IBM Plex Sans',sans-serif; }
     .tone-btn:hover { border-color:#0a66c2; }
@@ -61,19 +70,15 @@
     .tone-name { font-size:12px; font-weight:600; }
     .tone-desc { font-size:10px; opacity:0.65; margin-top:1px; }
 
-    /* Schedule */
     .schedule-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
-    .sched-btn { padding:7px 4px; border-radius:7px; cursor:pointer; border:1px solid #1a2a3a; background:#071020; color:#3a5a70; font-size:10px; font-weight:400; text-align:center; transition:all 0.2s; line-height:1.4; font-family:'IBM Plex Sans',sans-serif; }
+    .sched-btn { padding:7px 4px; border-radius:7px; cursor:pointer; border:1px solid #1a2a3a; background:#071020; color:#3a5a70; font-size:10px; text-align:center; transition:all 0.2s; line-height:1.4; font-family:'IBM Plex Sans',sans-serif; }
     .sched-btn:hover { border-color:#0a66c2; }
     .sched-btn.active { border-color:#0a66c2; background:rgba(10,102,194,0.2); color:#7ec8e3; font-weight:600; }
-    .sched-sub { font-size:9px; opacity:0.7; }
 
-    /* Generate button */
     #generate-btn { padding:14px; border-radius:12px; font-size:15px; font-weight:700; cursor:not-allowed; background:#0a1628; border:1px solid #1a2a3a; color:#3a5a70; width:100%; letter-spacing:0.06em; text-transform:uppercase; transition:all 0.3s; font-family:'IBM Plex Sans',sans-serif; }
     #generate-btn.ready { cursor:pointer; background:linear-gradient(135deg,#0a66c2,#0050a0 50%,#00b4d8); border:none; color:#fff; animation:glow 3s ease infinite; }
     #generate-btn.ready:hover { filter:brightness(1.1); }
 
-    /* Post card */
     #post-section { display:none; animation:slideIn 0.35s ease; }
     #post-section.visible { display:block; }
     .post-card { background:linear-gradient(135deg,#0a1628,#0d1f38); border:1px solid #0a66c2; border-radius:16px; padding:20px; box-shadow:0 0 36px rgba(10,102,194,0.18); }
@@ -81,7 +86,6 @@
     .post-label { font-size:11px; font-weight:600; color:#7ec8e3; letter-spacing:0.12em; text-transform:uppercase; }
     .post-schedule { font-size:11px; color:#3a5a70; }
 
-    /* LinkedIn preview */
     .li-preview { background:#f3f2ef; border-radius:10px; padding:16px; margin-bottom:14px; }
     .li-profile { display:flex; gap:10px; margin-bottom:12px; }
     .li-avatar { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#0a66c2,#00b4d8); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
@@ -92,7 +96,6 @@
     .li-actions { margin-top:14px; padding-top:12px; border-top:1px solid #e0dfdb; display:flex; gap:20px; }
     .li-action { font-size:12px; color:#666; cursor:pointer; }
 
-    /* Action buttons */
     .btn-row { display:flex; gap:10px; }
     .btn-copy { flex:1; padding:11px; border-radius:8px; cursor:pointer; background:rgba(10,102,194,0.12); border:1px solid #0a66c2; color:#7ec8e3; font-size:14px; font-weight:600; transition:all 0.2s; font-family:'IBM Plex Sans',sans-serif; }
     .btn-copy:hover { filter:brightness(1.1); }
@@ -100,13 +103,12 @@
     .btn-linkedin { flex:1; padding:11px; border-radius:8px; cursor:pointer; background:linear-gradient(135deg,#0a66c2,#0050a0); border:none; color:#fff; font-size:14px; font-weight:600; font-family:'IBM Plex Sans',sans-serif; display:flex; align-items:center; justify-content:center; gap:6px; }
     .btn-linkedin:hover { filter:brightness(1.1); }
 
-    /* Footer banner */
-    .banner { background:rgba(10,102,194,0.06); border:1px dashed #1a3a5a; border-radius:12px; padding:14px 18px; display:flex; gap:14px; align-items:center; animation:slideIn 0.4s ease; }
-    .banner-icon { font-size:22px; }
+    .banner { background:rgba(10,102,194,0.06); border:1px dashed #1a3a5a; border-radius:12px; padding:14px 18px; display:flex; gap:14px; align-items:center; }
     .banner-title { font-size:13px; font-weight:600; color:#7ec8e3; margin-bottom:3px; }
     .banner-text { font-size:12px; color:#3a5a70; }
     .banner-hl { color:#7ec8e3; }
 
+    .week-tag { font-size:11px; color:#3a5a70; font-family:'IBM Plex Mono',monospace; margin-top:6px; }
     .footer { text-align:center; font-size:11px; color:#111e2a; font-family:'IBM Plex Mono',monospace; padding-bottom:4px; margin-top:16px; }
 
     @media (max-width: 600px) {
@@ -119,16 +121,15 @@
 <body>
 <div class="wrap">
 
-  <!-- Header -->
   <div class="header">
     <div class="header-icon">🤖</div>
-    <div>
+    <div style="flex:1">
       <div class="header-title">IBM AI → LinkedIn Agent</div>
-      <div class="header-sub">This week's IBM articles · 4 tones · Weekly post generator</div>
+      <div class="header-sub">This week's IBM articles · 4 tones · Auto-refreshes every Monday</div>
     </div>
     <div class="badge">
       <div class="badge-dot"></div>
-      <span class="badge-text">THIS WEEK</span>
+      <span class="badge-text" id="badge-label">THIS WEEK</span>
     </div>
   </div>
 
@@ -138,9 +139,18 @@
     <div class="card">
       <div class="card-title">
         <div class="step-num">1</div>
-        <div class="section-label">Pick an IBM Article from This Week</div>
+        <div>
+          <div class="section-label">Pick an IBM Article from This Week</div>
+          <div class="week-tag" id="week-tag">Loading latest articles...</div>
+        </div>
       </div>
-      <div class="article-list" id="article-list"></div>
+      <div id="article-list">
+        <!-- Loading state -->
+        <div class="loading-wrap" id="loading-state">
+          <div class="spinner"></div>
+          <div class="loading-text">Fetching this week's IBM AI articles...</div>
+        </div>
+      </div>
     </div>
 
     <!-- Step 2: Tone + Schedule -->
@@ -155,10 +165,8 @@
       <div class="schedule-grid" id="schedule-grid"></div>
     </div>
 
-    <!-- Generate button -->
     <button id="generate-btn">← Select an article first</button>
 
-    <!-- Post output -->
     <div id="post-section">
       <div class="post-card">
         <div class="post-header">
@@ -189,359 +197,34 @@
       </div>
     </div>
 
-    <!-- Banner (hidden until post shown) -->
     <div class="banner" id="banner" style="display:none">
-      <div class="banner-icon">📅</div>
+      <div style="font-size:22px">📅</div>
       <div>
         <div class="banner-title">Weekly Cadence Ready</div>
-        <div class="banner-text">Post each <strong class="banner-hl" id="banner-schedule">Monday, 9:00 AM</strong>. Articles refresh weekly — come back next week for new IBM AI content.</div>
+        <div class="banner-text">Post each <strong class="banner-hl" id="banner-schedule">Monday</strong>. Articles auto-refresh every Monday with the latest from IBM.</div>
       </div>
     </div>
 
-    <div class="footer">Powered by Claude AI · IBM Think 2026 · May 5–14, 2026</div>
+    <div class="footer" id="footer">Powered by Claude AI · IBM Articles · Auto-refreshes weekly</div>
   </div>
 </div>
 
 <script>
-const IBM_ARTICLES = [
-  {
-    title: "Think 2026: IBM Delivers the Blueprint for the AI Operating Model",
-    url: "https://newsroom.ibm.com/2026-05-05-think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens",
-    summary: "IBM unveiled watsonx Orchestrate for multi-agent orchestration, IBM Confluent for real-time data, IBM Concert for intelligent ops, and IBM Sovereign Core — addressing why most enterprises aren't seeing AI ROI yet.",
-    date: "May 5, 2026",
-  },
-  {
-    title: "Shaping the Next Era of Agentic AI at Think 2026",
-    url: "https://www.ibm.com/think/news/live-from-think-2026",
-    summary: "IBM Think 2026 tackled why so little enterprise AI is in production, featuring real-world transformations from Disney, Warby Parker, and New York Life — and why 2026 is the year of the enterprise architect.",
-    date: "May 6, 2026",
-  },
-  {
-    title: "IBM Sovereign Core: AI-Ready Sovereign Environments with Verifiable Control",
-    url: "https://www.ibm.com/new/announcements/ibm-sovereign-core-the-new-end-to-end-system-for-sovereign-ai",
-    summary: "IBM launched Sovereign Core, a platform that embeds governance at the infrastructure runtime level — letting enterprises control where AI runs, how models are accessed, and how compliance is demonstrated continuously.",
-    date: "May 5, 2026",
-  },
-  {
-    title: "What It Takes to Build an AI-Ready Data Foundation: Insights from Think 2026",
-    url: "https://www.ibm.com/think/news/think-2026-data-recap",
-    summary: "IBM and Confluent showed how real-time data streaming is the missing ingredient for reliable AI agents — and why fragmented data causes agents to amplify problems rather than solve them.",
-    date: "May 8, 2026",
-  },
-];
-
 const TONES = [
   { id: "thought-leader", label: "Thought Leader", desc: "Insightful & authoritative" },
   { id: "conversational", label: "Conversational", desc: "Friendly & approachable" },
-  { id: "technical", label: "Technical", desc: "Deep-dive & expert" },
-  { id: "inspirational", label: "Inspirational", desc: "Motivating & forward-looking" },
+  { id: "technical",      label: "Technical",      desc: "Deep-dive & expert"        },
+  { id: "inspirational",  label: "Inspirational",  desc: "Motivating & forward-looking" },
 ];
-
 const SCHEDULES = ["Monday, 9:00 AM","Tuesday, 10:00 AM","Wednesday, 8:00 AM","Thursday, 11:00 AM","Friday, 9:00 AM"];
 
-const POSTS = {
-"0-thought-leader": `The AI divide is widening — and IBM just named it out loud.
-
-At Think 2026, IBM's CEO Arvind Krishna put it plainly: "The enterprises pulling ahead are not deploying more AI — they're redesigning how their business operates." That single sentence reframes the entire conversation around AI ROI.
-
-Most enterprises have invested heavily. Most are not seeing returns. The reason isn't the technology — it's the operating model. IBM's announcements this week address exactly that gap: watsonx Orchestrate for multi-agent coordination, Confluent for real-time data, Concert for intelligent operations, and Sovereign Core for governance at the infrastructure level.
-
-The companies winning with AI in 2026 aren't running more pilots. They've stopped treating AI as a layer on top of existing processes and started rebuilding processes around AI-native assumptions.
-
-That shift — from AI adoption to AI operating model — is the defining challenge of this moment.
-
-Where does your organization stand on that spectrum today?
-
-https://newsroom.ibm.com/2026-05-05-think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens
-
-#IBM #IBMThink #AI #EnterpriseAI #DigitalTransformation`,
-
-"0-conversational": `IBM dropped a truth bomb at Think 2026 this week.
-
-Most companies have spent big on AI. Most aren't seeing the ROI. IBM's CEO Arvind Krishna said it straight: the enterprises winning aren't the ones deploying more AI — they're the ones redesigning how their business actually operates.
-
-That's a big distinction. Plugging AI into broken workflows just speeds up the broken parts.
-
-IBM's announcements this week tackle the real blockers: multi-agent orchestration with watsonx Orchestrate, real-time data via Confluent, intelligent operations with Concert, and governance baked into the infrastructure itself with Sovereign Core.
-
-The message is clear: the AI experimentation phase is over. It's operating model time.
-
-What's been the biggest obstacle to AI ROI at your organization — the tech, the data, or the org design?
-
-https://newsroom.ibm.com/2026-05-05-think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens
-
-#IBM #IBMThink #AI #AIStrategy #EnterpriseAI`,
-
-"0-technical": `IBM's Think 2026 announcements reveal a coherent architectural answer to the enterprise AI production gap.
-
-The stack IBM unveiled this week addresses four distinct failure modes in enterprise AI deployment:
-
-**Orchestration** — watsonx Orchestrate (next gen) handles multi-agent coordination, task delegation, and workflow routing across heterogeneous agent systems. The shift from single-agent to multi-agent architectures is the key production challenge of 2026.
-
-**Data freshness** — IBM Confluent brings real-time streaming (Kafka/Flink) into the AI data layer. Stale context is one of the leading causes of agent failure in production; this directly addresses it.
-
-**Operational intelligence** — IBM Concert provides the observability and ops layer for AI workloads. Monitoring accuracy, drift, and context relevance — not just uptime — is the new baseline.
-
-**Sovereignty** — IBM Sovereign Core embeds policy at the infrastructure runtime level. Governance as a runtime property, not a config option.
-
-Taken together, this is a coherent answer to "why is only 16% of enterprise AI in production?" — each layer addresses a real blocker.
-
-Which of these four layers is the biggest gap in your current AI architecture?
-
-https://newsroom.ibm.com/2026-05-05-think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens
-
-#IBM #IBMThink #AI #MLEngineering #AgenticAI #EnterpriseArchitecture`,
-
-"0-inspirational": `Something shifted at IBM Think 2026 this week.
-
-The tone was different. Less "here's what AI could do" and more "here's why it hasn't — and here's how we fix it." That kind of honesty is rare in tech, and it's exactly what the industry needs right now.
-
-IBM named the AI divide: companies investing heavily in AI but not seeing it pay off. And instead of promising another silver bullet, they offered a blueprint. An operating model. A way of rebuilding the enterprise — not just adding AI on top of it.
-
-The enterprises that will matter in five years aren't the ones that ran the most experiments. They're the ones that had the courage to redesign how they work.
-
-That's not a technology challenge. That's a leadership one.
-
-What would it look like for your organization to truly redesign around AI — not just adopt it?
-
-https://newsroom.ibm.com/2026-05-05-think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens
-
-#IBM #IBMThink #AI #Leadership #FutureOfWork #Innovation`,
-
-"1-thought-leader": `The most important question in enterprise AI isn't "which model should we use?" It's "why is so little of this in production?"
-
-IBM's Think 2026 keynote this week confronted that question head-on. IBM SVP Ric Lewis put it bluntly: "Data is either a gold mine or a landfill — architecture is what determines which." The companies struggling with AI aren't failing on model quality. They're failing on data infrastructure, governance, and the human change management required to actually deploy.
-
-The real-world examples on stage told the story clearly. New York Life is redesigning the job description of every one of its 3,500 employees around AI. Disney, Warby Parker — these aren't AI-native startups. They're legacy enterprises that chose to transform people-first, technology-second.
-
-IBM's CTO Hillery Hunter made a prediction worth writing down: "2026 is the year of the enterprise architect."
-
-Not the AI researcher. Not the data scientist. The architect. The person who decides where AI runs, who controls it, and how it connects to everything else.
-
-Is your organization investing in that role?
-
-https://www.ibm.com/think/news/live-from-think-2026
-
-#IBM #IBMThink #AI #EnterpriseArchitecture #DigitalTransformation`,
-
-"1-conversational": `IBM Think 2026 asked the question everyone's been tiptoeing around: after all this AI investment, why is so little of it actually running in production?
-
-The answer, from IBM SVP Ric Lewis: "Data is either a gold mine or a landfill. Architecture is what determines which." In other words — it's not the AI that's failing. It's everything around it.
-
-What made this keynote different was the real-world honesty. New York Life's SVP Scott Berlin said something that stuck with me: "When we think about AI transformation, we think 'that's a technology project.' But the reality is transformation is a people project."
-
-3,500 employees. Every job description being redesigned. That's what AI transformation actually looks like in practice.
-
-And IBM's CTO declared 2026 "the year of the enterprise architect." The person who figures out how all the pieces connect — and who controls what.
-
-What do you think is the real bottleneck to AI production at most companies — data, governance, or people?
-
-https://www.ibm.com/think/news/live-from-think-2026
-
-#IBM #IBMThink #AI #EnterpriseAI #FutureOfWork`,
-
-"1-technical": `Think 2026 surfaced a systems-level diagnosis for the enterprise AI production gap — and the answers are architectural, not algorithmic.
-
-Three technical threads from IBM's keynotes this week worth tracking:
-
-**Data architecture as the primary failure mode.** Rob Thomas (IBM SVP): "Intelligence must evolve from just being available to being something actionable. Without that, your AI will amplify the fragmentation that exists in many organizations." The implication: AI doesn't fix data problems, it exposes them at scale.
-
-**Mainframe AI as a strategic decision.** IBM Z GM Skyla Loomis: "Activating AI on the mainframe is a strategic business decision — about removing friction and unlocking value from applications and data, while protecting trust and cost efficiency." IBM Bob Premium for Z is reporting 10x productivity gains in early testing.
-
-**Sovereignty as a runtime property.** IBM Sovereign Core and IBM Cloud Sovereignty Risk Profile ship audit-ready compliance evidence continuously — governance baked into the infrastructure layer, not bolted on afterward.
-
-The throughline: the production gap is an architecture gap. Models are ready. The infrastructure around them often isn't.
-
-What's the weakest layer in your current AI production stack?
-
-https://www.ibm.com/think/news/live-from-think-2026
-
-#IBM #IBMThink #AI #MLEngineering #DataArchitecture #EnterpriseAI`,
-
-"1-inspirational": `IBM Think 2026 reminded us this week that the most powerful AI deployments have something in common — they start with people, not models.
-
-New York Life. The Walt Disney Company. Warby Parker. Three very different enterprises. One shared approach: they treated AI transformation as a people project first, a technology project second.
-
-New York Life's Scott Berlin said it plainly: "We're redefining the interaction model between our people, the technology platforms, the agent capabilities. It's an end-to-end transformation of the business."
-
-That takes courage. It means trusting your people with new tools, new roles, new ways of working. It means redesigning job descriptions, not just adding a chatbot.
-
-The enterprises that get this right won't just be more efficient. They'll be more human — because they'll have freed their people to do the things only humans can do.
-
-What would it mean for your team if AI handled everything routine?
-
-https://www.ibm.com/think/news/live-from-think-2026
-
-#IBM #IBMThink #AI #FutureOfWork #PeopleFirst #Leadership`,
-
-"2-thought-leader": `AI governance just became a runtime requirement. IBM Sovereign Core, launched this week at Think 2026, is the clearest signal yet that the industry has accepted this.
-
-For years, sovereignty conversations centered on data residency — where data lives. IBM's announcement this week reframes the question entirely: it's no longer just about where data is stored, but where AI runs, how inference is governed, who controls access, and how compliance is demonstrated continuously.
-
-This matters for every regulated enterprise. Healthcare, financial services, government, telecom — sectors where "trust us, it's compliant" is not an acceptable answer. IBM Sovereign Core embeds policy at the infrastructure runtime level, so governance evolves with regulatory requirements rather than chasing them.
-
-The architectural implication is significant: governance can no longer be a configuration choice made at deployment. It has to be a property of the system itself — verifiable, continuous, auditable.
-
-If your AI strategy doesn't include a sovereignty layer, it has a gap. The question is whether you discover that gap on your own schedule or a regulator's.
-
-How is your organization approaching AI governance as a runtime requirement?
-
-https://www.ibm.com/new/announcements/ibm-sovereign-core-the-new-end-to-end-system-for-sovereign-ai
-
-#IBM #IBMThink #AIGovernance #SovereignAI #EnterpriseAI #Compliance`,
-
-"2-conversational": `Big news from IBM this week: they launched Sovereign Core, and it reframes what "AI governance" actually means.
-
-For a long time, "data sovereignty" meant: where is your data stored? That was already complex enough. But with AI, the questions multiplied fast: Where are your models running? Who can access your inference pipeline? How do you prove compliance — not just at audit time, but continuously?
-
-IBM Sovereign Core is designed to answer all of those at once. It's an end-to-end platform that lets enterprises deploy AI inside a sovereign boundary they actually control. Open, modular architecture. Customer-operated control plane. Verifiable governance at the runtime level.
-
-For industries like healthcare, finance, and government, this isn't optional infrastructure. It's table stakes.
-
-The shift: governance stops being something you bolt on at the end and becomes a property of how your AI system runs.
-
-How is your organization thinking about AI sovereignty right now?
-
-https://www.ibm.com/new/announcements/ibm-sovereign-core-the-new-end-to-end-system-for-sovereign-ai
-
-#IBM #AIGovernance #SovereignAI #EnterpriseAI #Compliance`,
-
-"2-technical": `IBM Sovereign Core (GA this week) introduces a governance architecture pattern worth understanding: policy-as-runtime rather than policy-as-configuration.
-
-The technical design choices are deliberate and significant:
-
-**Customer-operated control plane** deployed inside the sovereign boundary — provisioning, configuration, and lifecycle operations run where the customer controls them, not the vendor.
-
-**AI execution within defined sovereign boundaries** — model inference, agent operations, and reasoning traces are scoped to remain within the sovereign perimeter. External provider access can be explicitly disabled.
-
-**Extensible sovereign catalog** — customers define their own approved application and service catalog, creating an allowlist-first architecture for what runs inside the boundary.
-
-**Open, modular architecture on open standards** — portability and vendor lock-in avoidance are first-class design goals, not afterthoughts.
-
-**Continuous compliance evidence** — the IBM Cloud Sovereignty Risk Profile companion product generates audit-ready evidence continuously, not just at point-in-time assessments.
-
-The engineering takeaway: sovereignty is now a systems architecture concern, not a legal/compliance one. Enterprise architects owning AI infrastructure need to think about this layer at design time.
-
-How are you currently handling governance of AI inference in your production systems?
-
-https://www.ibm.com/new/announcements/ibm-sovereign-core-the-new-end-to-end-system-for-sovereign-ai
-
-#IBM #AIGovernance #MLEngineering #EnterpriseArchitecture #SovereignAI`,
-
-"2-inspirational": `Trust is the foundation of everything AI can become.
-
-IBM launched Sovereign Core this week — a platform that lets enterprises run AI with full control over their data, their models, their compliance. It's a technical product, but it represents something more important: the belief that AI works best when the people using it can trust it completely.
-
-We're at an inflection point. AI is moving into the most sensitive environments — hospitals, banks, government systems, critical infrastructure. The stakes are real. The consequences of getting it wrong are real.
-
-IBM's answer is to make governance not a checkbox, but a runtime property. Something that's continuously true, not just true enough.
-
-That's what trustworthy AI looks like in practice. Not a promise. A verifiable, auditable, controllable system.
-
-The enterprises that earn trust in this era — with their customers, their regulators, their employees — will be the ones that treated it as an engineering requirement, not a marketing message.
-
-What does "trustworthy AI" mean to you in your industry?
-
-https://www.ibm.com/new/announcements/ibm-sovereign-core-the-new-end-to-end-system-for-sovereign-ai
-
-#IBM #AIGovernance #TrustworthyAI #ResponsibleAI #EnterpriseAI`,
-
-"3-thought-leader": `The most underrated risk in enterprise AI isn't a hallucinating model. It's an agent operating on stale data.
-
-IBM and Confluent made that case compellingly at Think 2026 this week. The example Jay Kreps used is instructive: an AI agent handling customer complaints for a food delivery service. If that agent doesn't have real-time context — about the delivery, the driver, the customer — it can't make good decisions. Worse, without a circuit breaker, a bad decision doesn't affect one order. It affects thousands before anyone notices.
-
-Rob Thomas (IBM SVP) framed the stakes clearly: "Without the right data foundation, your AI will just amplify the fragmentation that exists in many organizations."
-
-That's the danger nobody wants to talk about. AI doesn't neutralize organizational dysfunction. It scales it.
-
-The enterprises getting this right in 2026 have "shifted data management left" — to the source, where it streams in real time, governed before it reaches the agent. That's a fundamentally different architecture than batch pipelines feeding AI models.
-
-Is your AI data foundation built for real-time decision-making, or for real-time experimentation?
-
-https://www.ibm.com/think/news/think-2026-data-recap
-
-#IBM #IBMThink #AI #DataEngineering #AgenticAI #EnterpriseAI`,
-
-"3-conversational": `Here's a scenario IBM shared at Think 2026 this week that I haven't stopped thinking about.
-
-An AI agent is handling food delivery complaints. A delivery goes wrong. Complaints start coming in. But the agent — because it's working with delayed, fragmented data — doesn't contain the problem. It keeps accepting orders. By the time anyone notices, it's not one bad order. It's thousands.
-
-"The agent didn't contain the problem. It amplified it."
-
-That sentence from IBM's Think 2026 data keynote is a genuine warning for anyone building agentic AI systems. The model isn't the risk. The data infrastructure around it is.
-
-IBM's answer — combining watsonx.data with Confluent's real-time streaming — is about making sure agents always operate with fresh, governed, contextually complete information. The data problem has to be solved before the agent problem can be.
-
-What's your current approach to ensuring your AI agents have access to real-time data?
-
-https://www.ibm.com/think/news/think-2026-data-recap
-
-#IBM #IBMThink #AI #DataEngineering #AgenticAI #RealTimeData`,
-
-"3-technical": `IBM's Think 2026 data keynote this week articulated the most precise technical framing of the agentic AI data problem I've seen: agents require a fundamentally different data management architecture than analytics workloads.
-
-The core technical insight from Confluent's Sean Falconer: successful enterprises have "shifted data governance left — closer to the source, where it's created and already streaming." This contrasts with downstream governance approaches that work for batch analytics but fail for real-time agent decision loops.
-
-The IBM + Confluent stack addresses three distinct agent data requirements:
-
-**Freshness** — Kafka/Flink streaming ensures agents operate on current state, not cached snapshots. For agents making consequential decisions (financial, operational, customer-facing), data latency directly translates to decision quality degradation.
-
-**Context completeness** — Agents need cross-system context assembled in real time. The food delivery example: complaint stream + delivery status + customer history + driver context, joined at inference time. Batch pipelines can't support this.
-
-**Governed access** — watsonx.data provides the governance layer, ensuring agents access only what they should, with audit trails and access controls that scale with agent autonomy.
-
-The architectural implication: your AI data platform and your streaming infrastructure need to be designed together, not integrated after the fact.
-
-How is your team handling real-time context assembly for production AI agents?
-
-https://www.ibm.com/think/news/think-2026-data-recap
-
-#IBM #IBMThink #DataEngineering #MLEngineering #AgenticAI #Kafka`,
-
-"3-inspirational": `Data is either a gold mine or a landfill. Architecture is what determines which.
-
-IBM's SVP Rob Thomas said that at Think 2026 this week, and it's one of those lines that cuts right through the noise.
-
-We talk a lot about AI capability. We talk less about the unsexy, essential work of making data ready for AI — streaming it in real time, enriching it with context, governing it so it can be trusted.
-
-But that work? That's what separates AI that amplifies fragmentation from AI that actually creates value. An agent with bad data doesn't just underperform. It confidently underperforms — at scale, at speed, in front of your customers.
-
-The enterprises doing this well in 2026 aren't just building smarter agents. They're building the data foundation those agents deserve. That takes patience, discipline, and the willingness to solve hard infrastructure problems before the exciting ones.
-
-The gold mine was always there. The work is in the architecture.
-
-What's one data infrastructure investment your organization needs to make to be truly AI-ready?
-
-https://www.ibm.com/think/news/think-2026-data-recap
-
-#IBM #IBMThink #AI #DataEngineering #FutureOfWork #EnterpriseAI`,
-};
-
-// State
 let selectedIdx = null;
 let selectedTone = "thought-leader";
 let selectedSchedule = "Monday, 9:00 AM";
+let articles = [];
+let posts = {};
 
-// Render articles
-const articleList = document.getElementById("article-list");
-IBM_ARTICLES.forEach((a, i) => {
-  const div = document.createElement("div");
-  div.className = "article-card";
-  div.id = "article-" + i;
-  div.innerHTML = `
-    <div class="article-inner">
-      <div class="article-num" id="article-num-${i}">${i + 1}</div>
-      <div style="flex:1">
-        <div class="article-title" id="article-title-${i}">${a.title}</div>
-        <div class="article-summary">${a.summary}</div>
-        <div class="article-date">📅 ${a.date}</div>
-      </div>
-    </div>`;
-  div.onclick = () => selectArticle(i);
-  articleList.appendChild(div);
-});
-
-// Render tones
+// ── Render tones ──
 const toneGrid = document.getElementById("tone-grid");
 TONES.forEach(t => {
   const btn = document.createElement("button");
@@ -552,17 +235,81 @@ TONES.forEach(t => {
   toneGrid.appendChild(btn);
 });
 
-// Render schedules
+// ── Render schedules ──
 const schedGrid = document.getElementById("schedule-grid");
 SCHEDULES.forEach(s => {
   const parts = s.split(",");
   const btn = document.createElement("button");
   btn.className = "sched-btn" + (s === selectedSchedule ? " active" : "");
   btn.id = "sched-" + s.replace(/[^a-z]/gi, "");
-  btn.innerHTML = `${parts[0]}<br><span class="sched-sub">${parts[1]}</span>`;
+  btn.innerHTML = `${parts[0]}<br><span style="font-size:9px;opacity:0.7">${parts[1]}</span>`;
   btn.onclick = () => selectSchedule(s);
   schedGrid.appendChild(btn);
 });
+
+// ── Load articles from API ──
+async function loadArticles() {
+  const listEl = document.getElementById("article-list");
+
+  // Check if we have cached data from today
+  const cached = sessionStorage.getItem("ibm_articles");
+  if (cached) {
+    try {
+      const { articles: a, posts: p, weekOf } = JSON.parse(cached);
+      articles = a;
+      posts = p;
+      renderArticles(weekOf);
+      return;
+    } catch {}
+  }
+
+  try {
+    const res = await fetch("/api/refresh");
+    if (!res.ok) throw new Error(`API returned ${res.status}`);
+    const data = await res.json();
+    articles = data.articles;
+    posts = data.posts;
+
+    // Cache in session so we don't re-fetch on every page load
+    sessionStorage.setItem("ibm_articles", JSON.stringify(data));
+    renderArticles(data.weekOf);
+
+  } catch (err) {
+    listEl.innerHTML = `
+      <div class="error-wrap">
+        <div class="error-icon">⚠️</div>
+        <div class="error-msg">Could not load articles: ${err.message}</div>
+        <button class="retry-btn" onclick="loadArticles()">↺ Retry</button>
+      </div>`;
+  }
+}
+
+function renderArticles(weekOf) {
+  document.getElementById("week-tag").textContent = weekOf ? `Week of ${weekOf}` : "";
+  document.getElementById("footer").textContent = `Powered by Claude AI · IBM Articles · Auto-refreshes every Monday`;
+
+  const listEl = document.getElementById("article-list");
+  listEl.innerHTML = "";
+  listEl.style.display = "grid";
+  listEl.style.gap = "7px";
+
+  articles.forEach((a, i) => {
+    const div = document.createElement("div");
+    div.className = "article-card";
+    div.id = "article-" + i;
+    div.innerHTML = `
+      <div class="article-inner">
+        <div class="article-num" id="article-num-${i}">${i + 1}</div>
+        <div style="flex:1">
+          <div class="article-title" id="article-title-${i}">${a.title}</div>
+          <div class="article-summary">${a.summary}</div>
+          <div class="article-date">📅 ${a.date}</div>
+        </div>
+      </div>`;
+    div.onclick = () => selectArticle(i);
+    listEl.appendChild(div);
+  });
+}
 
 function selectArticle(i) {
   if (selectedIdx !== null) {
@@ -604,19 +351,20 @@ function updateGenerateBtn() {
 
 document.getElementById("generate-btn").onclick = () => {
   if (selectedIdx === null) return;
-  const key = selectedIdx + "-" + selectedTone;
-  const post = POSTS[key];
+  const key = `${selectedIdx}-${selectedTone}`;
+  const post = posts[key];
   if (!post) return;
+
   document.getElementById("post-body").textContent = post;
   document.getElementById("post-label").textContent = "💼 LinkedIn Post — " + TONES.find(t => t.id === selectedTone).label;
   document.getElementById("post-schedule-display").textContent = "📅 " + selectedSchedule;
-  document.getElementById("banner-schedule").textContent = selectedSchedule;
+  document.getElementById("banner-schedule").textContent = selectedSchedule.split(",")[0];
   document.getElementById("post-section").classList.add("visible");
   document.getElementById("banner").style.display = "flex";
   document.getElementById("generate-btn").textContent = "🔄  Generate Different Tone";
   document.getElementById("copy-btn").textContent = "📋 Copy Post";
   document.getElementById("copy-btn").classList.remove("copied");
-  document.getElementById("post-section").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("post-section").scrollIntoView({ behavior:"smooth", block:"start" });
 };
 
 function copyPost() {
@@ -625,15 +373,11 @@ function copyPost() {
     const btn = document.getElementById("copy-btn");
     btn.textContent = "✅ Copied!";
     btn.classList.add("copied");
-    setTimeout(() => {
-      btn.textContent = "📋 Copy Post";
-      btn.classList.remove("copied");
-    }, 2500);
+    setTimeout(() => { btn.textContent = "📋 Copy Post"; btn.classList.remove("copied"); }, 2500);
   });
 }
 
 function openLinkedIn() {
-  // Try app deep link via hidden iframe, fall back to website
   const iframe = document.createElement("iframe");
   iframe.style.display = "none";
   iframe.src = "linkedin://feed";
@@ -643,6 +387,9 @@ function openLinkedIn() {
     window.open("https://www.linkedin.com/feed/", "_blank");
   }, 2000);
 }
+
+// Start loading articles on page open
+loadArticles();
 </script>
 </body>
 </html>
