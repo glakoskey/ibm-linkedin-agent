@@ -3,7 +3,7 @@
 // Searches IBM for this week's AI articles and generates LinkedIn posts
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-5";
 
 const TONES = [
   { id: "thought-leader", label: "Thought Leader", desc: "insightful and authoritative" },
