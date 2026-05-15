@@ -5,6 +5,8 @@ export default function handler(req, res) {
   const clientId = process.env.LINKEDIN_CLIENT_ID;
   const redirectUri = "https://ibm-linkedin-agent.vercel.app/api/auth/callback";
 
+  // openid + profile + email = Sign In with LinkedIn (OpenID Connect)
+  // w_member_social = Share on LinkedIn (requires product approval)
   const scope = "openid profile email w_member_social";
   const state = Math.random().toString(36).substring(2);
 
