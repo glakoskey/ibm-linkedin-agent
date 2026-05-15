@@ -143,27 +143,50 @@
       </div>
     </div>
 
-    <!-- Step 1 -->
+    <!-- Step 1: Search Topic -->
     <div class="card">
       <div class="card-title">
         <div class="step-num">1</div>
+        <div class="section-label">Set Your Search Topic</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
         <div>
-          <div class="section-label">Pick an IBM Article from This Week</div>
-          <div class="week-tag" id="week-tag">Loading latest articles...</div>
+          <div class="sub-label" style="margin-bottom:6px">WEBSITE</div>
+          <input id="search-site" value="ibm.com" placeholder="e.g. ibm.com, microsoft.com"
+            style="width:100%;padding:9px 12px;border-radius:8px;background:#071020;border:1px solid #1a2a3a;color:#c9d6e8;font-size:14px;outline:none;font-family:inherit;box-sizing:border-box" />
+        </div>
+        <div>
+          <div class="sub-label" style="margin-bottom:6px">TOPIC</div>
+          <input id="search-topic" value="AI" placeholder="e.g. AI, cybersecurity, cloud"
+            style="width:100%;padding:9px 12px;border-radius:8px;background:#071020;border:1px solid #1a2a3a;color:#c9d6e8;font-size:14px;outline:none;font-family:inherit;box-sizing:border-box" />
+        </div>
+      </div>
+      <button id="search-btn" onclick="searchArticles()"
+        style="width:100%;padding:10px;border-radius:8px;cursor:pointer;background:linear-gradient(135deg,#0a66c2,#0050a0);border:none;color:#fff;font-size:13px;font-weight:600;font-family:inherit;letter-spacing:0.05em;text-transform:uppercase;transition:all 0.2s">
+        🔍&nbsp; Search Articles
+      </button>
+    </div>
+
+    <!-- Step 2: Articles -->
+    <div class="card">
+      <div class="card-title">
+        <div class="step-num">2</div>
+        <div>
+          <div class="section-label" id="article-section-label">Articles Found This Week</div>
+          <div class="week-tag" id="week-tag">Enter a topic above and click Search</div>
         </div>
       </div>
       <div id="article-list">
-        <div class="loading-wrap">
-          <div class="spinner"></div>
-          <div class="loading-text">Fetching this week's IBM AI articles...</div>
+        <div style="padding:24px;text-align:center;color:#3a5a70;font-size:13px;font-family:'IBM Plex Mono',monospace">
+          👆 Set your website and topic above, then click Search Articles
         </div>
       </div>
     </div>
 
-    <!-- Step 2 -->
+    <!-- Step 3 -->
     <div class="card">
       <div class="card-title">
-        <div class="step-num">2</div>
+        <div class="step-num">3</div>
         <div class="section-label">Choose Tone &amp; Schedule</div>
       </div>
       <div class="sub-label">POST TONE</div>
@@ -336,30 +359,46 @@ SCHEDULES.forEach(s => {
   schedGrid.appendChild(btn);
 });
 
-// ── Load articles ──
-async function loadArticles() {
-  const cached = sessionStorage.getItem("ibm_articles_v2");
-  if (cached) {
-    try {
-      const { articles: a, weekOf } = JSON.parse(cached);
-      articles = a; renderArticles(weekOf); return;
-    } catch {}
-  }
+// ── Search articles ──
+async function searchArticles() {
+  const site = document.getElementById("search-site").value.trim() || "ibm.com";
+  const topic = document.getElementById("search-topic").value.trim() || "AI";
+
+  // Update UI
+  const btn = document.getElementById("search-btn");
+  btn.disabled = true;
+  btn.textContent = "⏳  Searching...";
+  selectedIdx = null;
+  articles = [];
+  currentPost = "";
+  document.getElementById("post-section").classList.remove("visible");
+  document.getElementById("banner").style.display = "none";
+  document.getElementById("article-section-label").textContent = `Articles from ${site} about ${topic}`;
+  document.getElementById("week-tag").textContent = "Searching...";
+  document.getElementById("article-list").innerHTML = `<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Searching ${site} for ${topic} articles...</div></div>`;
+  updateBtn();
+
   try {
-    const res = await fetch("/api/refresh");
+    const params = new URLSearchParams({ site, topic });
+    const res = await fetch(`/api/refresh?${params}`);
     if (!res.ok) throw new Error(`API returned ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     articles = data.articles;
-    sessionStorage.setItem("ibm_articles_v2", JSON.stringify(data));
-    renderArticles(data.weekOf);
+    renderArticles(data.weekOf, site, topic);
   } catch (err) {
-    document.getElementById("article-list").innerHTML = `<div class="error-wrap"><div class="error-msg">⚠️ ${err.message}</div><button class="retry-btn" onclick="loadArticles()">↺ Retry</button></div>`;
+    document.getElementById("article-list").innerHTML = `<div class="error-wrap"><div class="error-msg">⚠️ ${err.message}</div><button class="retry-btn" onclick="searchArticles()">↺ Retry</button></div>`;
+    document.getElementById("week-tag").textContent = "Search failed";
   }
+
+  btn.disabled = false;
+  btn.textContent = "🔍  Search Articles";
 }
 
-function renderArticles(weekOf) {
-  document.getElementById("week-tag").textContent = weekOf ? `Week of ${weekOf}` : "";
+function renderArticles(weekOf, site, topic) {
+  const siteLabel = site || "ibm.com";
+  const topicLabel = topic || "AI";
+  document.getElementById("week-tag").textContent = weekOf ? `Week of ${weekOf}  ·  ${siteLabel}  ·  ${topicLabel}` : `${siteLabel} · ${topicLabel}`;
   const listEl = document.getElementById("article-list");
   listEl.innerHTML = "";
   listEl.style.display = "grid";
@@ -415,7 +454,7 @@ function updateBtn() {
   } else if (selectedIdx !== null) {
     btn.className = "ready"; btn.textContent = "🚀  Generate LinkedIn Post";
   } else {
-    btn.className = ""; btn.textContent = "← Select an article first";
+    btn.className = ""; btn.textContent = "← Select an article above first";
   }
 }
 
@@ -509,7 +548,7 @@ function showToast(msg, type = "info") {
 // ── Init ──
 handleOAuthCallback();
 checkStoredAuth();
-loadArticles();
+// Articles load on demand when user clicks Search Articles
 </script>
 </body>
 </html>
