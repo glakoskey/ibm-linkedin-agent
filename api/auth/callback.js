@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // LinkedIn requires Basic auth header for token exchange
+    // Send credentials in both body AND Basic header to satisfy LinkedIn
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
     const tokenRes = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
@@ -27,6 +27,8 @@ export default async function handler(req, res) {
         grant_type: "authorization_code",
         code,
         redirect_uri: redirectUri,
+        client_id: clientId,
+        client_secret: clientSecret,
       }),
     });
 
@@ -35,10 +37,10 @@ export default async function handler(req, res) {
 
     let tokenData;
     try { tokenData = JSON.parse(tokenText); }
-    catch { throw new Error(`Token response not JSON: ${tokenText.slice(0, 200)}`); }
+    catch { throw new Error(`Token response not JSON: ${tokenText.slice(0,200)}`); }
 
     if (!tokenRes.ok || !tokenData.access_token) {
-      throw new Error(tokenData.error_description || tokenData.error || `Token exchange failed ${tokenRes.status}`);
+      throw new Error(tokenData.error_description || tokenData.error || `Token failed ${tokenRes.status}: ${tokenText.slice(0,200)}`);
     }
 
     // Get LinkedIn profile
@@ -46,10 +48,10 @@ export default async function handler(req, res) {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     const profile = await profileRes.json();
-    console.log("Profile:", JSON.stringify(profile).slice(0, 200));
+    console.log("Profile sub:", profile.sub, "name:", profile.name);
 
     const urn = profile.sub;
-    if (!urn) throw new Error("No user URN in profile response");
+    if (!urn) throw new Error("No user URN in profile response: " + JSON.stringify(profile).slice(0,200));
 
     const params = new URLSearchParams({
       auth_success: "1",
