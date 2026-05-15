@@ -683,24 +683,71 @@ async function checkBreakingNews() {
       document.getElementById("breaking-news-reason").textContent = monData.reason || "";
 
       const articlesEl = document.getElementById("breaking-news-articles");
-      articlesEl.innerHTML = monData.articles.slice(0,3).map(a => `
+      const breakingArticles = monData.articles.slice(0,3);
+      articlesEl.innerHTML = breakingArticles.map(a => `
         <div style="padding:8px 10px;border-radius:6px;background:rgba(255,140,0,0.08);border:1px solid rgba(255,140,0,0.2);cursor:pointer"
              onclick="useBreakingArticle(${JSON.stringify(a).replace(/"/g,"&quot;")})">
           <div style="font-size:12px;font-weight:600;color:#ffaa44">${a.title}</div>
-          <div style="font-size:11px;color:#806040;margin-top:2px">${a.summary}</div>
-          <div style="font-size:10px;color:#ff8c00;margin-top:3px">Click to use this article →</div>
-        </div>`).join("");
+          <div style="font-size:11px;color:#806040;margin-top:2px">${a.summary || ""}</div>
+          <div style="font-size:10px;color:#ff8c00;margin-top:3px">↗ Click to use this article</div>
+        </div>
+        <script type="application/json" class="breaking-article-data" style="display:none">${JSON.stringify(a)}<\/script>`).join("");
     }
   } catch {}
 }
 
 function useBreakingArticle(article) {
-  // Inject breaking news article into the articles list and select it
-  articles.unshift({ ...article, breaking: true });
-  renderArticles(null, document.getElementById("search-site")?.value || "ibm.com", "Breaking News");
-  selectArticle(0);
-  document.getElementById("breaking-news-banner").style.display = "none";
+  // Replace articles list with just the breaking news articles from the alert
+  // Get all breaking articles from the banner so user can pick any of them
+  const bannerArticles = document.querySelectorAll("#breaking-news-articles [data-article]");
+  
+  // Build a clean articles array from the breaking news set
+  const breakingArticles = [];
+  document.querySelectorAll("#breaking-news-articles .breaking-article-data").forEach(el => {
+    try { breakingArticles.push(JSON.parse(el.textContent)); } catch {}
+  });
+
+  // If we couldn't get the full set, just use the clicked article
+  if (breakingArticles.length === 0) breakingArticles.push(article);
+
+  // Replace the articles array and render
+  articles = breakingArticles;
+  selectedIdx = null;
+  currentPost = "";
+  document.getElementById("post-section").classList.remove("visible");
+  document.getElementById("banner").style.display = "none";
   document.getElementById("article-section-label").textContent = "🚨 Breaking IBM News";
+  document.getElementById("week-tag").textContent = "Detected today — select an article below";
+  document.getElementById("search-site").value = "ibm.com";
+  document.getElementById("search-topic").value = "Breaking News";
+
+  const listEl = document.getElementById("article-list");
+  listEl.innerHTML = "";
+  listEl.style.display = "grid";
+  listEl.style.gap = "7px";
+  articles.forEach((a, i) => {
+    const div = document.createElement("div");
+    div.className = "article-card" + (a.title === article.title ? " selected" : "");
+    div.id = "article-" + i;
+    div.innerHTML = `<div class="article-inner">
+      <div class="article-num" id="article-num-${i}">${a.title === article.title ? "✓" : i+1}</div>
+      <div style="flex:1">
+        <div class="article-title" style="color:${a.title === article.title ? "#c9d6e8" : "#7a9ab0"}">${a.title}</div>
+        <div class="article-summary">${a.summary || ""}</div>
+        <div class="article-date" style="color:#ff8c00">🚨 Breaking News · ${a.date || "Today"}</div>
+      </div>
+    </div>`;
+    div.onclick = () => selectArticle(i);
+    listEl.appendChild(div);
+  });
+
+  // Select the clicked article
+  const clickedIdx = articles.findIndex(a => a.title === article.title);
+  selectedIdx = clickedIdx >= 0 ? clickedIdx : 0;
+  updateBtn();
+
+  // Hide the banner
+  document.getElementById("breaking-news-banner").style.display = "none";
 }
 
 function dismissBreakingNews() {
