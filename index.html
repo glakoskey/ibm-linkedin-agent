@@ -143,6 +143,32 @@
       </div>
     </div>
 
+    <!-- Breaking News Alert (hidden until detected) -->
+    <div id="breaking-news-banner" style="display:none;background:linear-gradient(135deg,#1a0a00,#2a1500);border:1px solid #ff8c00;border-radius:12px;padding:14px 18px;animation:slideIn 0.4s ease">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <span style="font-size:22px">🚨</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:#ff8c00;letter-spacing:0.1em;text-transform:uppercase">Breaking IBM News Detected</div>
+          <div style="font-size:12px;color:#a06020" id="breaking-news-reason"></div>
+        </div>
+        <button onclick="dismissBreakingNews()" style="padding:5px 10px;border-radius:6px;background:transparent;border:1px solid #ff8c00;color:#ff8c00;cursor:pointer;font-size:11px;font-family:inherit">Dismiss</button>
+      </div>
+      <div id="breaking-news-articles" style="display:grid;gap:6px"></div>
+    </div>
+
+    <!-- Insights Dashboard (hidden until data exists) -->
+    <div id="insights-panel" style="display:none;background:linear-gradient(135deg,#0a1628,#0d1f38);border:1px solid #1a2a3a;border-radius:16px;padding:20px;animation:slideIn 0.3s ease">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:600;color:#7ec8e3;letter-spacing:0.1em;text-transform:uppercase">📊 Engagement Intelligence</div>
+        <div style="font-size:11px;color:#3a5a70;font-family:'IBM Plex Mono',monospace" id="insights-updated"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px" id="tone-scores"></div>
+      <div style="background:#071020;border-radius:8px;padding:12px">
+        <div style="font-size:11px;color:#3a5a70;margin-bottom:6px">RECENT POSTS</div>
+        <div id="recent-posts-list" style="display:grid;gap:6px"></div>
+      </div>
+    </div>
+
     <!-- Step 1: Search Topic -->
     <div class="card">
       <div class="card-title">
@@ -533,11 +559,20 @@ async function postToLinkedIn() {
   const btn = document.getElementById("post-btn");
   btn.disabled = true; btn.className = "btn btn-post posting"; btn.textContent = "⚙️  Posting...";
 
+  const article = selectedIdx !== null ? articles[selectedIdx] : null;
+
   try {
     const res = await fetch("/api/post", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ token: liToken, urn: liUrn, text: currentPost }),
+      body: JSON.stringify({
+        token: liToken,
+        urn: liUrn,
+        text: currentPost,
+        tone: selectedTone,
+        articleTitle: article?.title || "",
+        articleUrl: article?.url || "",
+      }),
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -561,9 +596,111 @@ function showToast(msg, type = "info") {
   setTimeout(() => t.remove(), 4000);
 }
 
+// ── Load Insights & Breaking News ──
+async function loadInsights() {
+  try {
+    const res = await fetch("/api/insights");
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // Show breaking news alert if detected
+    const alert = data.recentPosts?.find ? null : null; // check monitor separately
+    await checkBreakingNews();
+
+    // Show insights panel if we have data
+    if (data.intelligence && data.totalPosts > 0) {
+      const panel = document.getElementById("insights-panel");
+      panel.style.display = "block";
+
+      // Tone score cards
+      const toneScoresEl = document.getElementById("tone-scores");
+      const toneAvg = data.intelligence.toneAvg || {};
+      const bestTone = data.intelligence.bestTone;
+      const toneLabels = { "thought-leader":"Thought Leader","conversational":"Conversational","technical":"Technical","inspirational":"Inspirational" };
+
+      toneScoresEl.innerHTML = Object.entries(toneLabels).map(([id, label]) => {
+        const score = toneAvg[id] || 0;
+        const isBest = id === bestTone;
+        return `<div style="padding:10px;border-radius:8px;background:${isBest?"rgba(10,102,194,0.2)":"#040d18"};border:1px solid ${isBest?"#0a66c2":"#1a2a3a"};text-align:center">
+          <div style="font-size:10px;color:${isBest?"#7ec8e3":"#3a5a70"};font-weight:${isBest?700:400};margin-bottom:4px">${label}</div>
+          <div style="font-size:20px;font-weight:700;color:${isBest?"#7ec8e3":"#4a6a8a"}">${score}</div>
+          <div style="font-size:9px;color:#3a5a70">avg score</div>
+          ${isBest ? "<div style='font-size:9px;color:#00d46a;margin-top:2px'>⭐ BEST</div>" : ""}
+        </div>`;
+      }).join("");
+
+      // Auto-select best tone
+      if (bestTone && TONES.find(t => t.id === bestTone)) {
+        selectTone(bestTone);
+        console.log("Auto-selected best tone:", bestTone);
+      }
+
+      // Updated timestamp
+      const updated = data.intelligence.updatedAt ? new Date(data.intelligence.updatedAt).toLocaleDateString() : "";
+      document.getElementById("insights-updated").textContent = updated ? `Updated ${updated}` : "";
+
+      // Recent posts
+      const postsEl = document.getElementById("recent-posts-list");
+      if (data.recentPosts.length === 0) {
+        postsEl.innerHTML = "<div style='font-size:12px;color:#3a5a70'>No posts tracked yet — publish your first post to start tracking engagement.</div>";
+      } else {
+        postsEl.innerHTML = data.recentPosts.slice(0,5).map(post => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;background:#0a1628">
+            <div style="font-size:10px;background:rgba(10,102,194,0.2);color:#7ec8e3;padding:2px 6px;border-radius:4px;white-space:nowrap">${post.tone}</div>
+            <div style="flex:1;font-size:12px;color:#7a9ab0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${post.articleTitle || "Post"}</div>
+            <div style="font-size:11px;color:#3a5a70;white-space:nowrap">👍${post.engagement?.likes||0} 💬${post.engagement?.comments||0}</div>
+            <div style="font-size:11px;font-weight:700;color:${post.score>5?"#00d46a":"#4a6a8a"}">★${post.score||0}</div>
+          </div>`).join("");
+      }
+    }
+  } catch (err) {
+    console.log("Insights load error:", err.message);
+  }
+}
+
+async function checkBreakingNews() {
+  try {
+    const res = await fetch("/api/insights");
+    if (!res.ok) return;
+    // Check KV for breaking news alert via monitor result
+    // We'll read it from a separate endpoint call to avoid double-fetch
+    const monRes = await fetch("/api/monitor", { method: "GET" });
+    if (!monRes.ok) return;
+    const monData = await monRes.json();
+
+    if (monData.breakingNews && monData.articles?.length > 0) {
+      document.getElementById("breaking-news-banner").style.display = "block";
+      document.getElementById("breaking-news-reason").textContent = monData.reason || "";
+
+      const articlesEl = document.getElementById("breaking-news-articles");
+      articlesEl.innerHTML = monData.articles.slice(0,3).map(a => `
+        <div style="padding:8px 10px;border-radius:6px;background:rgba(255,140,0,0.08);border:1px solid rgba(255,140,0,0.2);cursor:pointer"
+             onclick="useBreakingArticle(${JSON.stringify(a).replace(/"/g,"&quot;")})">
+          <div style="font-size:12px;font-weight:600;color:#ffaa44">${a.title}</div>
+          <div style="font-size:11px;color:#806040;margin-top:2px">${a.summary}</div>
+          <div style="font-size:10px;color:#ff8c00;margin-top:3px">Click to use this article →</div>
+        </div>`).join("");
+    }
+  } catch {}
+}
+
+function useBreakingArticle(article) {
+  // Inject breaking news article into the articles list and select it
+  articles.unshift({ ...article, breaking: true });
+  renderArticles(null, document.getElementById("search-site")?.value || "ibm.com", "Breaking News");
+  selectArticle(0);
+  document.getElementById("breaking-news-banner").style.display = "none";
+  document.getElementById("article-section-label").textContent = "🚨 Breaking IBM News";
+}
+
+function dismissBreakingNews() {
+  document.getElementById("breaking-news-banner").style.display = "none";
+}
+
 // ── Init ──
 handleOAuthCallback();
 checkStoredAuth();
+loadInsights();
 // Articles load on demand when user clicks Search Articles
 </script>
 </body>
