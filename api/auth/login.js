@@ -16,6 +16,7 @@ export default function handler(req, res) {
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("scope", scope);
   authUrl.searchParams.set("state", state);
+  authUrl.searchParams.set("prompt", "consent"); // Force fresh token every time
 
   res.setHeader("Set-Cookie", `li_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
   res.redirect(authUrl.toString());
