@@ -28,8 +28,8 @@
     .step-num { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#0a66c2,#00b4d8); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
     .section-label { font-size:12px; font-weight:600; color:#7ec8e3; letter-spacing:0.1em; text-transform:uppercase; }
     .sub-label { font-size:11px; color:#3a5a70; margin-bottom:9px; }
-    .loading-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; padding:32px; }
     .spinner { width:36px; height:36px; border:3px solid #1a2a3a; border-top-color:#0a66c2; border-radius:50%; animation:spin 0.9s linear infinite; }
+    .loading-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; padding:32px; }
     .loading-text { font-size:13px; color:#3a5a70; font-family:'IBM Plex Mono',monospace; animation:pulse 1.5s ease infinite; }
     .error-wrap { padding:20px; text-align:center; }
     .error-msg { font-size:13px; color:#ff6b6b; margin-bottom:12px; }
@@ -74,20 +74,42 @@
     .li-body { color:#1a1a1a; font-size:14px; line-height:1.75; white-space:pre-wrap; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:60px; }
     .li-generating { display:flex; align-items:center; gap:10px; color:#888; font-size:13px; padding:20px 0; }
     .li-actions { margin-top:14px; padding-top:12px; border-top:1px solid #e0dfdb; display:flex; gap:20px; }
-    .li-action { font-size:12px; color:#666; cursor:pointer; }
+    .li-action { font-size:12px; color:#666; }
+
+    /* Action buttons */
     .btn-row { display:flex; gap:10px; }
-    .btn-copy { flex:1; padding:11px; border-radius:8px; cursor:pointer; background:rgba(10,102,194,0.12); border:1px solid #0a66c2; color:#7ec8e3; font-size:14px; font-weight:600; transition:all 0.2s; font-family:'IBM Plex Sans',sans-serif; }
-    .btn-copy:hover { filter:brightness(1.1); }
-    .btn-copy.copied { background:rgba(0,212,170,0.12); border-color:#00d4aa; color:#00d4aa; }
-    .btn-copy:disabled { opacity:0.4; cursor:not-allowed; }
-    .btn-linkedin { flex:1; padding:11px; border-radius:8px; cursor:pointer; background:linear-gradient(135deg,#0a66c2,#0050a0); border:none; color:#fff; font-size:14px; font-weight:600; font-family:'IBM Plex Sans',sans-serif; display:flex; align-items:center; justify-content:center; gap:6px; }
-    .btn-linkedin:hover { filter:brightness(1.1); }
+    .btn { flex:1; padding:11px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s; font-family:'IBM Plex Sans',sans-serif; border:none; }
+    .btn:hover:not(:disabled) { filter:brightness(1.1); }
+    .btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .btn-copy { background:rgba(10,102,194,0.12); border:1px solid #0a66c2 !important; color:#7ec8e3; }
+    .btn-copy.copied { background:rgba(0,212,170,0.12); border-color:#00d4aa !important; color:#00d4aa; }
+    .btn-post { background:linear-gradient(135deg,#0a66c2,#0050a0); color:#fff; }
+    .btn-post.posted { background:linear-gradient(135deg,#00a855,#007a3d); }
+    .btn-post.posting { background:#0a2040; color:#7ec8e3; animation:none; }
+
+    /* LinkedIn connect banner */
+    .li-connect { background:linear-gradient(135deg,#0a1e38,#0d2a4a); border:1px solid #0a66c2; border-radius:12px; padding:16px 18px; display:flex; align-items:center; gap:14px; margin-bottom:0; }
+    .li-connect-icon { font-size:28px; flex-shrink:0; }
+    .li-connect-title { font-size:13px; font-weight:600; color:#7ec8e3; margin-bottom:3px; }
+    .li-connect-text { font-size:12px; color:#3a5a70; }
+    .btn-connect { margin-left:auto; padding:10px 18px; border-radius:8px; cursor:pointer; background:linear-gradient(135deg,#0a66c2,#0050a0); border:none; color:#fff; font-size:13px; font-weight:600; font-family:'IBM Plex Sans',sans-serif; white-space:nowrap; flex-shrink:0; }
+    .btn-connect:hover { filter:brightness(1.1); }
+    .li-connected { background:rgba(0,168,85,0.1); border:1px solid #00a855; border-radius:12px; padding:12px 18px; display:flex; align-items:center; gap:10px; }
+    .li-connected-dot { width:8px; height:8px; border-radius:50%; background:#00d46a; flex-shrink:0; }
+    .li-connected-text { font-size:13px; color:#00d46a; font-weight:600; }
+    .li-connected-name { font-size:12px; color:#3a5a70; margin-left:auto; }
+    .btn-disconnect { padding:6px 12px; border-radius:6px; cursor:pointer; background:transparent; border:1px solid #2a3a4a; color:#3a5a70; font-size:11px; font-family:'IBM Plex Sans',sans-serif; }
+    .btn-disconnect:hover { border-color:#ff6b6b; color:#ff6b6b; }
+
     .banner { background:rgba(10,102,194,0.06); border:1px dashed #1a3a5a; border-radius:12px; padding:14px 18px; display:flex; gap:14px; align-items:center; }
     .banner-title { font-size:13px; font-weight:600; color:#7ec8e3; margin-bottom:3px; }
     .banner-text { font-size:12px; color:#3a5a70; }
     .week-tag { font-size:11px; color:#3a5a70; font-family:'IBM Plex Mono',monospace; margin-top:4px; }
     .footer { text-align:center; font-size:11px; color:#111e2a; font-family:'IBM Plex Mono',monospace; padding-bottom:4px; margin-top:16px; }
-    @media(max-width:600px) { .tone-grid{grid-template-columns:repeat(2,1fr)} .schedule-grid{grid-template-columns:repeat(3,1fr)} .header-title{font-size:17px} }
+    .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#0a66c2; color:#fff; padding:12px 24px; border-radius:10px; font-size:14px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,0.4); z-index:999; animation:slideIn 0.3s ease; }
+    .toast.success { background:#00a855; }
+    .toast.error { background:#cc3333; }
+    @media(max-width:600px) { .tone-grid{grid-template-columns:repeat(2,1fr)} .schedule-grid{grid-template-columns:repeat(3,1fr)} .header-title{font-size:17px} .btn-row{flex-direction:column} }
   </style>
 </head>
 <body>
@@ -96,12 +118,31 @@
     <div class="header-icon">🤖</div>
     <div style="flex:1">
       <div class="header-title">IBM AI → LinkedIn Agent</div>
-      <div class="header-sub">This week's IBM articles · 4 tones · Auto-refreshes every Monday</div>
+      <div class="header-sub">This week's IBM articles · 4 tones · Auto-posts to LinkedIn</div>
     </div>
     <div class="badge"><div class="badge-dot"></div><span class="badge-text">THIS WEEK</span></div>
   </div>
 
   <div class="grid">
+
+    <!-- LinkedIn Connect -->
+    <div id="li-connect-section">
+      <div class="li-connect" id="li-connect-banner">
+        <div class="li-connect-icon">💼</div>
+        <div>
+          <div class="li-connect-title">Connect LinkedIn to Auto-Post</div>
+          <div class="li-connect-text">Sign in once — then post directly from this app with one click</div>
+        </div>
+        <button class="btn-connect" onclick="connectLinkedIn()">Connect LinkedIn</button>
+      </div>
+      <div class="li-connected" id="li-connected-banner" style="display:none">
+        <div class="li-connected-dot"></div>
+        <div class="li-connected-text">LinkedIn Connected</div>
+        <div class="li-connected-name" id="li-connected-name"></div>
+        <button class="btn-disconnect" onclick="disconnectLinkedIn()">Disconnect</button>
+      </div>
+    </div>
+
     <!-- Step 1 -->
     <div class="card">
       <div class="card-title">
@@ -144,7 +185,7 @@
           <div class="li-profile">
             <div class="li-avatar">👤</div>
             <div>
-              <div class="li-name">Your Name</div>
+              <div class="li-name" id="preview-name">Your Name</div>
               <div class="li-title">Your Title · 1st</div>
               <div class="li-time">Just now · 🌐</div>
             </div>
@@ -163,8 +204,8 @@
           </div>
         </div>
         <div class="btn-row">
-          <button class="btn-copy" id="copy-btn" onclick="copyPost()" disabled>📋 Copy Post</button>
-          <button class="btn-linkedin" onclick="openLinkedIn()">Open LinkedIn <span style="font-size:16px;font-weight:900">in</span></button>
+          <button class="btn btn-copy" id="copy-btn" onclick="copyPost()" disabled>📋 Copy Post</button>
+          <button class="btn btn-post" id="post-btn" onclick="postToLinkedIn()" disabled>📤 Post to LinkedIn</button>
         </div>
       </div>
     </div>
@@ -173,7 +214,7 @@
       <div style="font-size:22px">📅</div>
       <div>
         <div class="banner-title">Weekly Cadence Ready</div>
-        <div class="banner-text">Post each <strong style="color:#7ec8e3" id="banner-schedule">Monday</strong>. Articles auto-refresh every Monday with the latest from IBM.</div>
+        <div class="banner-text">Articles auto-refresh every Monday. Connect LinkedIn once and posting takes one click.</div>
       </div>
     </div>
 
@@ -195,8 +236,75 @@ let selectedTone = "thought-leader";
 let selectedSchedule = "Monday, 9:00 AM";
 let articles = [];
 let isGenerating = false;
+let currentPost = "";
+let liToken = null;
+let liUrn = null;
+let liName = null;
 
-// Render tones
+// ── Check for OAuth callback params ──
+function handleOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("auth_success")) {
+    liToken = params.get("token");
+    liUrn = params.get("urn");
+    liName = params.get("name");
+    sessionStorage.setItem("li_token", liToken);
+    sessionStorage.setItem("li_urn", liUrn);
+    sessionStorage.setItem("li_name", liName);
+    window.history.replaceState({}, "", "/");
+    showConnected();
+    showToast("LinkedIn connected successfully! 🎉", "success");
+  } else if (params.get("auth_error")) {
+    showToast("LinkedIn auth failed: " + params.get("auth_error"), "error");
+    window.history.replaceState({}, "", "/");
+  }
+}
+
+// ── LinkedIn auth UI ──
+function checkStoredAuth() {
+  liToken = sessionStorage.getItem("li_token");
+  liUrn = sessionStorage.getItem("li_urn");
+  liName = sessionStorage.getItem("li_name");
+  if (liToken) showConnected();
+}
+
+function showConnected() {
+  document.getElementById("li-connect-banner").style.display = "none";
+  document.getElementById("li-connected-banner").style.display = "flex";
+  document.getElementById("li-connected-name").textContent = liName || "";
+  document.getElementById("preview-name").textContent = liName || "Your Name";
+  updatePostBtn();
+}
+
+function connectLinkedIn() {
+  window.location.href = "/api/auth/login";
+}
+
+function disconnectLinkedIn() {
+  liToken = null; liUrn = null; liName = null;
+  sessionStorage.removeItem("li_token");
+  sessionStorage.removeItem("li_urn");
+  sessionStorage.removeItem("li_name");
+  document.getElementById("li-connect-banner").style.display = "flex";
+  document.getElementById("li-connected-banner").style.display = "none";
+  document.getElementById("preview-name").textContent = "Your Name";
+  updatePostBtn();
+}
+
+function updatePostBtn() {
+  const btn = document.getElementById("post-btn");
+  if (!currentPost) { btn.disabled = true; return; }
+  if (liToken) {
+    btn.disabled = false;
+    btn.textContent = "📤 Post to LinkedIn";
+    btn.className = "btn btn-post";
+  } else {
+    btn.disabled = true;
+    btn.textContent = "🔒 Connect LinkedIn to Post";
+  }
+}
+
+// ── Render tones ──
 const toneGrid = document.getElementById("tone-grid");
 TONES.forEach(t => {
   const btn = document.createElement("button");
@@ -207,7 +315,7 @@ TONES.forEach(t => {
   toneGrid.appendChild(btn);
 });
 
-// Render schedules
+// ── Render schedules ──
 const schedGrid = document.getElementById("schedule-grid");
 SCHEDULES.forEach(s => {
   const parts = s.split(",");
@@ -219,16 +327,13 @@ SCHEDULES.forEach(s => {
   schedGrid.appendChild(btn);
 });
 
-// Load articles
+// ── Load articles ──
 async function loadArticles() {
-  const listEl = document.getElementById("article-list");
   const cached = sessionStorage.getItem("ibm_articles_v2");
   if (cached) {
     try {
       const { articles: a, weekOf } = JSON.parse(cached);
-      articles = a;
-      renderArticles(weekOf);
-      return;
+      articles = a; renderArticles(weekOf); return;
     } catch {}
   }
   try {
@@ -240,7 +345,7 @@ async function loadArticles() {
     sessionStorage.setItem("ibm_articles_v2", JSON.stringify(data));
     renderArticles(data.weekOf);
   } catch (err) {
-    listEl.innerHTML = `<div class="error-wrap"><div class="error-msg">⚠️ ${err.message}</div><button class="retry-btn" onclick="loadArticles()">↺ Retry</button></div>`;
+    document.getElementById("article-list").innerHTML = `<div class="error-wrap"><div class="error-msg">⚠️ ${err.message}</div><button class="retry-btn" onclick="loadArticles()">↺ Retry</button></div>`;
   }
 }
 
@@ -277,6 +382,7 @@ function selectArticle(i) {
   document.getElementById("article-num-"+i).textContent = "✓";
   document.getElementById("post-section").classList.remove("visible");
   document.getElementById("banner").style.display = "none";
+  currentPost = "";
   updateBtn();
 }
 
@@ -296,79 +402,104 @@ function selectSchedule(s) {
 function updateBtn() {
   const btn = document.getElementById("generate-btn");
   if (isGenerating) {
-    btn.className = "generating";
-    btn.textContent = "⚙️  Writing your post...";
+    btn.className = "generating"; btn.textContent = "⚙️  Writing your post...";
   } else if (selectedIdx !== null) {
-    btn.className = "ready";
-    btn.textContent = "🚀  Generate LinkedIn Post";
+    btn.className = "ready"; btn.textContent = "🚀  Generate LinkedIn Post";
   } else {
-    btn.className = "";
-    btn.textContent = "← Select an article first";
+    btn.className = ""; btn.textContent = "← Select an article first";
   }
 }
 
+// ── Generate post ──
 document.getElementById("generate-btn").onclick = async () => {
   if (selectedIdx === null || isGenerating) return;
-
   const article = articles[selectedIdx];
   const tone = TONES.find(t => t.id === selectedTone);
+  isGenerating = true; currentPost = ""; updateBtn(); updatePostBtn();
 
-  isGenerating = true;
-  updateBtn();
-
-  // Show post section with spinner
   document.getElementById("post-label").textContent = `💼 LinkedIn Post — ${tone.label}`;
   document.getElementById("post-schedule-display").textContent = "📅 " + selectedSchedule;
   document.getElementById("post-body").innerHTML = `<div class="li-generating"><div class="spinner" style="width:20px;height:20px;border-width:2px"></div>Writing your post...</div>`;
   document.getElementById("copy-btn").disabled = true;
   document.getElementById("copy-btn").textContent = "📋 Copy Post";
   document.getElementById("copy-btn").classList.remove("copied");
+  document.getElementById("post-btn").disabled = true;
+  document.getElementById("post-btn").textContent = "📤 Post to LinkedIn";
+  document.getElementById("post-btn").className = "btn btn-post";
   document.getElementById("post-section").classList.add("visible");
   document.getElementById("banner").style.display = "none";
   document.getElementById("post-section").scrollIntoView({ behavior:"smooth", block:"start" });
 
   try {
     const res = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ article, tone }),
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-
-    document.getElementById("post-body").textContent = data.post;
+    currentPost = data.post;
+    document.getElementById("post-body").textContent = currentPost;
     document.getElementById("copy-btn").disabled = false;
-    document.getElementById("banner-schedule").textContent = selectedSchedule.split(",")[0];
+    document.getElementById("banner-schedule") && (document.getElementById("banner-schedule").textContent = selectedSchedule.split(",")[0]);
     document.getElementById("banner").style.display = "flex";
-
+    updatePostBtn();
   } catch (err) {
     document.getElementById("post-body").innerHTML = `<span style="color:#ff6b6b">❌ Error: ${err.message}</span>`;
   }
 
   isGenerating = false;
-  const btn = document.getElementById("generate-btn");
-  btn.className = "ready";
-  btn.textContent = "🔄  Generate Again";
+  document.getElementById("generate-btn").className = "ready";
+  document.getElementById("generate-btn").textContent = "🔄  Generate Again";
 };
 
+// ── Copy ──
 function copyPost() {
-  const text = document.getElementById("post-body").textContent;
-  navigator.clipboard.writeText(text).then(() => {
+  if (!currentPost) return;
+  navigator.clipboard.writeText(currentPost).then(() => {
     const btn = document.getElementById("copy-btn");
-    btn.textContent = "✅ Copied!";
-    btn.classList.add("copied");
+    btn.textContent = "✅ Copied!"; btn.classList.add("copied");
     setTimeout(() => { btn.textContent = "📋 Copy Post"; btn.classList.remove("copied"); }, 2500);
   });
 }
 
-function openLinkedIn() {
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = "linkedin://feed";
-  document.body.appendChild(iframe);
-  setTimeout(() => { document.body.removeChild(iframe); window.open("https://www.linkedin.com/feed/","_blank"); }, 2000);
+// ── Post to LinkedIn ──
+async function postToLinkedIn() {
+  if (!currentPost || !liToken || !liUrn) return;
+  const btn = document.getElementById("post-btn");
+  btn.disabled = true; btn.className = "btn btn-post posting"; btn.textContent = "⚙️  Posting...";
+
+  try {
+    const res = await fetch("/api/post", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token: liToken, urn: liUrn, text: currentPost }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    btn.className = "btn btn-post posted"; btn.textContent = "✅ Posted to LinkedIn!";
+    showToast("🎉 Post published to LinkedIn!", "success");
+    setTimeout(() => { btn.disabled = false; btn.className = "btn btn-post"; btn.textContent = "📤 Post to LinkedIn"; }, 4000);
+
+  } catch (err) {
+    btn.disabled = false; btn.className = "btn btn-post"; btn.textContent = "📤 Post to LinkedIn";
+    showToast("❌ " + err.message, "error");
+  }
 }
 
+// ── Toast ──
+function showToast(msg, type = "info") {
+  const t = document.createElement("div");
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ── Init ──
+handleOAuthCallback();
+checkStoredAuth();
 loadArticles();
 </script>
 </body>
