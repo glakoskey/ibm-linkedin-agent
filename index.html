@@ -407,8 +407,18 @@ async function searchArticles() {
   try {
     const params = new URLSearchParams({ site, topic });
     const res = await fetch(`/api/refresh?${params}`);
-    if (!res.ok) throw new Error(`API returned ${res.status}`);
     const data = await res.json();
+
+    if (res.status === 429 || data.isRateLimit) {
+      document.getElementById("article-list").innerHTML = `<div class="error-wrap"><div class="error-msg">⏳ Rate limit hit — waiting 20 seconds then retrying automatically...</div></div>`;
+      document.getElementById("week-tag").textContent = "Retrying...";
+      await new Promise(r => setTimeout(r, 20000));
+      btn.disabled = false;
+      btn.textContent = "🔍  Search Articles";
+      searchArticles();
+      return;
+    }
+
     if (data.error) throw new Error(data.error);
     articles = data.articles;
     renderArticles(data.weekOf, site, topic);
