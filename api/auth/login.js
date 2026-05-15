@@ -3,7 +3,7 @@
 
 export default function handler(req, res) {
   const clientId = process.env.LINKEDIN_CLIENT_ID;
-  const redirectUri = `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://ibm-linkedin-agent-4trq8j7la-gary-lakoskey-s-projects.vercel.app"}/api/auth/callback`;
+  const redirectUri = "https://ibm-linkedin-agent.vercel.app/api/auth/callback";
 
   const scope = "openid profile email w_member_social";
   const state = Math.random().toString(36).substring(2);
