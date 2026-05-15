@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   try {
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
-    // Exchange code for token
+    // Step 1: Exchange code for token
     const tokenRes = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
       method: "POST",
       headers: {
@@ -33,7 +33,8 @@ export default async function handler(req, res) {
     });
 
     const tokenText = await tokenRes.text();
-    console.log("Token status:", tokenRes.status, "Body:", tokenText.slice(0, 400));
+    console.log("Token status:", tokenRes.status);
+    console.log("Token body:", tokenText.slice(0, 500));
 
     let tokenData;
     try { tokenData = JSON.parse(tokenText); }
@@ -44,75 +45,59 @@ export default async function handler(req, res) {
     }
 
     const accessToken = tokenData.access_token;
-    console.log("Got access token, length:", accessToken.length);
+    const scope = tokenData.scope || "";
+    console.log("Token OK, scope:", scope, "token length:", accessToken.length);
 
-    // Try userinfo endpoint first (OpenID Connect)
-    async function fetchProfile(token) {
-      const r = await fetch("https://api.linkedin.com/v2/userinfo", {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "LinkedIn-Version": "202304",
-        },
+    // Step 2: Get profile using /v2/me (most reliable endpoint)
+    // This works with both openid and legacy scopes
+    const meRes = await fetch("https://api.linkedin.com/v2/me", {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "X-Restli-Protocol-Version": "2.0.0",
+      },
+    });
+    const meText = await meRes.text();
+    console.log("v2/me status:", meRes.status, "body:", meText.slice(0, 300));
+
+    let meData = {};
+    try { meData = JSON.parse(meText); } catch {}
+
+    // Step 3: If v2/me worked, use it
+    let urn = meData.id;
+    let name = "";
+
+    if (urn) {
+      name = [meData.localizedFirstName, meData.localizedLastName].filter(Boolean).join(" ") || "LinkedIn User";
+      console.log("Got profile from v2/me — id:", urn, "name:", name);
+    } else {
+      // Step 4: Fall back to userinfo (OpenID Connect)
+      console.log("v2/me failed, trying userinfo...");
+      const uiRes = await fetch("https://api.linkedin.com/v2/userinfo", {
+        headers: { "Authorization": `Bearer ${accessToken}` },
       });
-      const text = await r.text();
-      console.log("userinfo status:", r.status, "body:", text.slice(0, 300));
-      try { return { status: r.status, data: JSON.parse(text) }; }
-      catch { return { status: r.status, data: {} }; }
+      const uiText = await uiRes.text();
+      console.log("userinfo status:", uiRes.status, "body:", uiText.slice(0, 300));
+
+      let uiData = {};
+      try { uiData = JSON.parse(uiText); } catch {}
+
+      urn = uiData.sub;
+      name = uiData.name || uiData.given_name || "LinkedIn User";
     }
 
-    // Try /v2/me as fallback (older LinkedIn API)
-    async function fetchProfileV2(token) {
-      const r = await fetch("https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName)", {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "LinkedIn-Version": "202304",
-          "X-Restli-Protocol-Version": "2.0.0",
-        },
-      });
-      const text = await r.text();
-      console.log("v2/me status:", r.status, "body:", text.slice(0, 300));
-      try { return { status: r.status, data: JSON.parse(text) }; }
-      catch { return { status: r.status, data: {} }; }
+    if (!urn) {
+      throw new Error(`Profile fetch failed. v2/me: ${meRes.status}, scope granted: ${scope}. Try revoking app access at linkedin.com/settings and reconnecting.`);
     }
-
-    // Try userinfo
-    let { status, data: profile } = await fetchProfile(accessToken);
-
-    // If 401, wait and retry once
-    if (status === 401 || !profile.sub) {
-      console.log("userinfo 401 — waiting 2s and retrying...");
-      await new Promise(r => setTimeout(r, 2000));
-      ({ status, data: profile } = await fetchProfile(accessToken));
-    }
-
-    // If still no sub, try the v2/me fallback
-    if (!profile.sub) {
-      console.log("userinfo failed, trying v2/me fallback...");
-      const { status: s2, data: me } = await fetchProfileV2(accessToken);
-      console.log("v2/me result:", JSON.stringify(me).slice(0, 200));
-      if (me.id) {
-        // v2/me uses 'id' not 'sub'
-        profile = {
-          sub: me.id,
-          name: `${me.localizedFirstName || ""} ${me.localizedLastName || ""}`.trim() || "LinkedIn User",
-        };
-      }
-    }
-
-    if (!profile.sub) {
-      throw new Error("Could not retrieve your LinkedIn profile. Please disconnect any existing app access at linkedin.com/settings and try again.");
-    }
-
-    console.log("Auth complete, URN:", profile.sub, "name:", profile.name);
 
     const params = new URLSearchParams({
       auth_success: "1",
       token: accessToken,
       expires_in: tokenData.expires_in || 5183944,
-      urn: profile.sub,
-      name: profile.name || "LinkedIn User",
+      urn,
+      name: name || "LinkedIn User",
     });
 
+    console.log("Auth success for URN:", urn);
     return res.redirect(`/?${params.toString()}`);
 
   } catch (err) {
