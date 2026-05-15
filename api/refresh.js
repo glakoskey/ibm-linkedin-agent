@@ -54,11 +54,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Accept site and topic as query params — defaults to ibm.com / AI
+    const site = req.query.site || "ibm.com";
+    const topic = req.query.topic || "AI";
+
     const today = new Date();
     const weekAgo = new Date(today - 7 * 24 * 60 * 60 * 1000);
     const dateStr = weekAgo.toISOString().split("T")[0];
 
-    const prompt = `Search ibm.com for the 4 most recent articles about AI published after ${dateStr}.
+    const prompt = `Search ${site} for the 4 most recent articles about ${topic} published after ${dateStr}.
 Return ONLY a valid JSON array, no markdown, no explanation:
 [{"title":"...","url":"https://...","summary":"one sentence summary","date":"Month DD, YYYY"}]`;
 
