@@ -255,6 +255,10 @@ function handleOAuthCallback() {
     showConnected();
     showToast("LinkedIn connected successfully! 🎉", "success");
   } else if (params.get("auth_error")) {
+    // Clear any stale tokens so the next attempt starts fresh
+    sessionStorage.removeItem("li_token");
+    sessionStorage.removeItem("li_urn");
+    sessionStorage.removeItem("li_name");
     showToast("LinkedIn auth failed: " + params.get("auth_error"), "error");
     window.history.replaceState({}, "", "/");
   }
@@ -277,6 +281,11 @@ function showConnected() {
 }
 
 function connectLinkedIn() {
+  // Always clear stale session before starting a fresh OAuth flow
+  sessionStorage.removeItem("li_token");
+  sessionStorage.removeItem("li_urn");
+  sessionStorage.removeItem("li_name");
+  liToken = null; liUrn = null; liName = null;
   window.location.href = "/api/auth/login";
 }
 
