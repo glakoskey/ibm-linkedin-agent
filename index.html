@@ -478,15 +478,31 @@ document.getElementById("generate-btn").onclick = async () => {
   document.getElementById("banner").style.display = "none";
   document.getElementById("post-section").scrollIntoView({ behavior:"smooth", block:"start" });
 
-  try {
+  async function attemptGenerate(retryCount = 0) {
     const res = await fetch("/api/generate", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ article, tone }),
     });
     const data = await res.json();
+
+    // Auto-retry on rate limit once after 15 seconds
+    if (res.status === 429 || data.isRateLimit) {
+      if (retryCount < 1) {
+        document.getElementById("post-body").innerHTML = `<div class="li-generating"><div class="spinner" style="width:20px;height:20px;border-width:2px"></div>Rate limit hit — retrying in 15 seconds...</div>`;
+        await new Promise(r => setTimeout(r, 15000));
+        return attemptGenerate(retryCount + 1);
+      }
+      throw new Error("Still rate limited — please wait 60 seconds and try again.");
+    }
+
     if (data.error) throw new Error(data.error);
-    currentPost = data.post;
+    return data.post;
+  }
+
+  try {
+    const post = await attemptGenerate();
+    currentPost = post;
     document.getElementById("post-body").textContent = currentPost;
     document.getElementById("copy-btn").disabled = false;
     document.getElementById("banner-schedule") && (document.getElementById("banner-schedule").textContent = selectedSchedule.split(",")[0]);
