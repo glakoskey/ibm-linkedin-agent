@@ -8,7 +8,7 @@ import { kvGet, kvSet } from "./kv.js";
 async function callClaude(messages, useSearch = false) {
   const body = {
     model: MODEL,
-    max_tokens: 800,
+    max_tokens: 600,
     messages,
     ...(useSearch ? { tools: [{ type: "web_search_20250305", name: "web_search" }] } : {}),
   };
