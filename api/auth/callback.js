@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   const { code, error, error_description } = req.query;
   const clientId = process.env.LINKEDIN_CLIENT_ID;
   const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
-  const appUrl = "https://ibm-linkedin-agent-4trq8j7la-gary-lakoskey-s-projects.vercel.app";
+  const appUrl = "https://ibm-linkedin-agent.vercel.app";
   const redirectUri = `${appUrl}/api/auth/callback`;
 
   if (error) {
