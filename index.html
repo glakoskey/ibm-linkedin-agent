@@ -670,13 +670,24 @@ async function loadInsights() {
 
 async function checkBreakingNews() {
   try {
-    const res = await fetch("/api/insights");
-    if (!res.ok) return;
-    // Check KV for breaking news alert via monitor result
-    // We'll read it from a separate endpoint call to avoid double-fetch
-    const monRes = await fetch("/api/monitor", { method: "GET" });
-    if (!monRes.ok) return;
-    const monData = await monRes.json();
+    // Only call /api/monitor once per day — cache result in sessionStorage
+    const cacheKey = "monitor_check_" + new Date().toISOString().split("T")[0];
+    const cached = sessionStorage.getItem(cacheKey);
+    let monData;
+
+    if (cached) {
+      monData = JSON.parse(cached);
+      console.log("Using cached monitor result from today");
+    } else {
+      const monRes = await fetch("/api/monitor", { method: "GET" });
+      if (!monRes.ok) return;
+      monData = await monRes.json();
+      sessionStorage.setItem(cacheKey, JSON.stringify(monData));
+      // Clear yesterday's cache key if it exists
+      Object.keys(sessionStorage)
+        .filter(k => k.startsWith("monitor_check_") && k !== cacheKey)
+        .forEach(k => sessionStorage.removeItem(k));
+    }
 
     if (monData.breakingNews && monData.articles?.length > 0) {
       document.getElementById("breaking-news-banner").style.display = "block";
