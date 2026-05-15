@@ -1,4 +1,20 @@
 // api/auth/callback.js
+// Decode JWT without verifying signature to extract sub (user URN)
+function decodeJWT(token) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = parts[1];
+    // Base64url decode
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "==".slice(0, (4 - base64.length % 4) % 4);
+    const json = Buffer.from(padded, "base64").toString("utf8");
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   const { code, error, error_description } = req.query;
   const clientId = process.env.LINKEDIN_CLIENT_ID;
@@ -16,7 +32,7 @@ export default async function handler(req, res) {
   try {
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
-    // Step 1: Exchange code for token
+    // Exchange code for token
     const tokenRes = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
       method: "POST",
       headers: {
@@ -33,8 +49,7 @@ export default async function handler(req, res) {
     });
 
     const tokenText = await tokenRes.text();
-    console.log("Token status:", tokenRes.status);
-    console.log("Token body:", tokenText.slice(0, 500));
+    console.log("Token status:", tokenRes.status, "body:", tokenText.slice(0, 500));
 
     let tokenData;
     try { tokenData = JSON.parse(tokenText); }
@@ -45,48 +60,55 @@ export default async function handler(req, res) {
     }
 
     const accessToken = tokenData.access_token;
-    const scope = tokenData.scope || "";
-    console.log("Token OK, scope:", scope, "token length:", accessToken.length);
+    console.log("Token OK, scope:", tokenData.scope, "has id_token:", !!tokenData.id_token);
 
-    // Step 2: Get profile using /v2/me (most reliable endpoint)
-    // This works with both openid and legacy scopes
-    const meRes = await fetch("https://api.linkedin.com/v2/me", {
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "X-Restli-Protocol-Version": "2.0.0",
-      },
-    });
-    const meText = await meRes.text();
-    console.log("v2/me status:", meRes.status, "body:", meText.slice(0, 300));
+    // Strategy 1: Extract URN from id_token JWT (no extra API call needed)
+    let urn = null;
+    let name = "LinkedIn User";
 
-    let meData = {};
-    try { meData = JSON.parse(meText); } catch {}
+    if (tokenData.id_token) {
+      const claims = decodeJWT(tokenData.id_token);
+      console.log("JWT claims:", JSON.stringify(claims).slice(0, 300));
+      if (claims?.sub) {
+        urn = claims.sub;
+        name = claims.name || claims.given_name || "LinkedIn User";
+        console.log("Got URN from id_token:", urn, "name:", name);
+      }
+    }
 
-    // Step 3: If v2/me worked, use it
-    let urn = meData.id;
-    let name = "";
-
-    if (urn) {
-      name = [meData.localizedFirstName, meData.localizedLastName].filter(Boolean).join(" ") || "LinkedIn User";
-      console.log("Got profile from v2/me — id:", urn, "name:", name);
-    } else {
-      // Step 4: Fall back to userinfo (OpenID Connect)
-      console.log("v2/me failed, trying userinfo...");
+    // Strategy 2: Try userinfo if no id_token
+    if (!urn) {
+      console.log("No id_token, trying userinfo...");
       const uiRes = await fetch("https://api.linkedin.com/v2/userinfo", {
         headers: { "Authorization": `Bearer ${accessToken}` },
       });
       const uiText = await uiRes.text();
       console.log("userinfo status:", uiRes.status, "body:", uiText.slice(0, 300));
+      try {
+        const ui = JSON.parse(uiText);
+        if (ui.sub) { urn = ui.sub; name = ui.name || ui.given_name || "LinkedIn User"; }
+      } catch {}
+    }
 
-      let uiData = {};
-      try { uiData = JSON.parse(uiText); } catch {}
-
-      urn = uiData.sub;
-      name = uiData.name || uiData.given_name || "LinkedIn User";
+    // Strategy 3: Try v2/me with no version header
+    if (!urn) {
+      console.log("Trying v2/me...");
+      const meRes = await fetch("https://api.linkedin.com/v2/me", {
+        headers: { "Authorization": `Bearer ${accessToken}` },
+      });
+      const meText = await meRes.text();
+      console.log("v2/me status:", meRes.status, "body:", meText.slice(0, 300));
+      try {
+        const me = JSON.parse(meText);
+        if (me.id) {
+          urn = me.id;
+          name = [me.localizedFirstName, me.localizedLastName].filter(Boolean).join(" ") || "LinkedIn User";
+        }
+      } catch {}
     }
 
     if (!urn) {
-      throw new Error(`Profile fetch failed. v2/me: ${meRes.status}, scope granted: ${scope}. Try revoking app access at linkedin.com/settings and reconnecting.`);
+      throw new Error("Could not get LinkedIn profile ID after 3 attempts. Please try again.");
     }
 
     const params = new URLSearchParams({
@@ -94,10 +116,10 @@ export default async function handler(req, res) {
       token: accessToken,
       expires_in: tokenData.expires_in || 5183944,
       urn,
-      name: name || "LinkedIn User",
+      name,
     });
 
-    console.log("Auth success for URN:", urn);
+    console.log("Auth success, URN:", urn);
     return res.redirect(`/?${params.toString()}`);
 
   } catch (err) {
