@@ -1,8 +1,44 @@
 // api/generate.js
-// Generates a single LinkedIn post on demand (called from the browser)
-
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = "claude-sonnet-4-5";
+
+async function callClaude(prompt, retries = 2) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 512,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (res.status === 429) {
+      // Rate limited — wait and retry
+      const retryAfter = parseInt(res.headers.get("retry-after") || "15", 10);
+      const wait = retryAfter * 1000;
+      console.log(`Rate limited on attempt ${attempt}, waiting ${retryAfter}s...`);
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      throw new Error("Rate limit hit — please wait a moment and try again.");
+    }
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.content.filter(b => b.type === "text").map(b => b.text).join("").trim();
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -15,51 +51,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    const prompt = `Write a LinkedIn post about this IBM article.
+    // Concise prompt to minimize token usage
+    const prompt = `Write a LinkedIn post. Tone: ${tone.desc}.
 
-Title: ${article.title}
+Article: ${article.title}
 URL: ${article.url}
 Summary: ${article.summary}
 
-Tone: ${tone.desc}
+Rules: hook opening (not "I"), 150-200 words, include URL, end with #IBM #AI + 2 hashtags, close with a question. Post text only.`;
 
-Requirements:
-- Open with a strong hook (do NOT start with "I")
-- 150-250 words
-- Include the article URL naturally
-- End with hashtags on their own line: #IBM #AI plus 2-3 more relevant ones
-- Finish with a question to spark comments
-- Use blank lines between paragraphs
-
-Write only the post text, nothing else.`;
-
-    const res2 = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1024,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    if (!res2.ok) {
-      const err = await res2.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `HTTP ${res2.status}`);
-    }
-
-    const data = await res2.json();
-    const post = data.content.filter(b => b.type === "text").map(b => b.text).join("").trim();
+    const post = await callClaude(prompt);
     if (!post) throw new Error("Empty response from Claude");
 
     return res.status(200).json({ post });
 
   } catch (err) {
     console.error("Generate error:", err.message);
-    return res.status(500).json({ error: err.message });
+    // Pass rate limit errors with a specific flag so the client can show a friendly message
+    const isRateLimit = err.message.includes("Rate limit") || err.message.includes("rate limit");
+    return res.status(isRateLimit ? 429 : 500).json({ error: err.message, isRateLimit });
   }
 }
