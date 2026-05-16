@@ -47,7 +47,7 @@ async function callClaude(messages, useSearch = false, retries = 3) {
         { role: "assistant", content: data.content },
         {
           role: "user",
-          content: `Now output ONLY the JSON array of articles found. Nothing else. Start with [ end with ]:
+          content: `Output the articles you found as a JSON array. Include whatever you found — use approximate dates if needed. Never refuse or explain. Just output the JSON array starting with [ and ending with ]:
 [{"title":"...","url":"https://...","summary":"one sentence","date":"Month DD, YYYY"}]`
         },
       ];
@@ -128,10 +128,12 @@ export default async function handler(req, res) {
 
     console.log(`Searching ${site} for ${topic} articles since ${dateStr}`);
 
-    const prompt = `Search the web for the 4 most recent articles about ${topic} from ${site} published after ${dateStr}.
+    const prompt = `Search the web for recent articles about ${topic} from ${site}.
 
-Output ONLY a JSON array. No explanation, no markdown, no extra text. Start with [ and end with ]:
-[{"title":"article title","url":"https://full-url","summary":"one sentence","date":"Month DD, YYYY"}]`;
+Return the best 4 results you find as a JSON array. Use approximate dates if exact dates are unclear. Always return results even if dates are uncertain.
+
+Output ONLY the JSON array, nothing else. Start with [ and end with ]:
+[{"title":"article title","url":"https://full-url","summary":"one sentence summary","date":"Month DD, YYYY"}]`;
 
     const raw = await callClaude([{ role: "user", content: prompt }], true);
     const articles = extractArticles(raw);
