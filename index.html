@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IBM AI → LinkedIn Agent | CloudSentinel-AI</title>
-  <meta name="description" content="Autonomous AI agent that finds IBM articles, writes LinkedIn posts, and publishes directly to your profile. Built by CloudSentinel-AI." />
-  <meta property="og:title" content="IBM AI → LinkedIn Agent | CloudSentinel-AI" />
-  <meta property="og:description" content="Autonomous AI agent for LinkedIn content. Find articles, generate posts, publish instantly." />
+  <title>PostFlow AI | CloudSentinel-AI</title>
+  <meta name="description" content="PostFlow AI — autonomous content agent that finds industry articles, writes professional posts, and publishes directly to your LinkedIn profile. Built by CloudSentinel-AI." />
+  <meta property="og:title" content="PostFlow AI | CloudSentinel-AI" />
+  <meta property="og:description" content="PostFlow AI — find articles, generate posts, publish to LinkedIn instantly. Built by CloudSentinel-AI." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -120,8 +120,8 @@
   <div class="header">
     <div class="header-icon">🤖</div>
     <div style="flex:1">
-      <div class="header-title">IBM AI → LinkedIn Agent</div>
-      <div class="header-sub">Powered by CloudSentinel-AI  ·  Autonomous LinkedIn Content Agent</div>
+      <div class="header-title">PostFlow AI</div>
+      <div class="header-sub">Powered by CloudSentinel-AI  ·  Autonomous Content Publishing Agent</div>
     </div>
     <div class="badge"><div class="badge-dot"></div><span class="badge-text">THIS WEEK</span></div>
   </div>
@@ -151,11 +151,11 @@
       <div style="display:flex;align-items:flex-start;gap:14px">
         <span style="font-size:28px;flex-shrink:0">👋</span>
         <div style="flex:1">
-          <div style="font-size:14px;font-weight:700;color:#c9d6e8;margin-bottom:4px">Welcome to the CloudSentinel-AI LinkedIn Agent Demo</div>
-          <div style="font-size:12px;color:#4a7090;line-height:1.6;margin-bottom:10px">This autonomous AI agent finds articles from any website, writes LinkedIn posts in your voice, and publishes directly to your profile. Connect your LinkedIn below to try it — posts go to <strong style="color:#7ec8e3">your account</strong>, not ours.</div>
+          <div style="font-size:14px;font-weight:700;color:#c9d6e8;margin-bottom:4px">Welcome to PostFlow AI — by CloudSentinel-AI</div>
+          <div style="font-size:12px;color:#4a7090;line-height:1.6;margin-bottom:10px">PostFlow AI finds articles from any website, writes professional posts in your voice, and publishes directly to your LinkedIn profile. Connect below to try it — posts go to <strong style="color:#7ec8e3">your account</strong>, not ours.</div>
           <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
             <span style="font-size:12px;color:#3a5a70">Like what you see?</span>
-            <a href="mailto:Gary.Lakoskey@cloudsentinel.ai?subject=LinkedIn Agent - I want my own!" style="padding:7px 14px;border-radius:7px;background:linear-gradient(135deg,#0a66c2,#0050a0);color:#fff;font-size:12px;font-weight:600;text-decoration:none;font-family:'IBM Plex Sans',sans-serif">Get your own agent →</a>
+            <a href="mailto:Gary.Lakoskey@cloudsentinel.ai?subject=PostFlow AI - I want my own!" style="padding:7px 14px;border-radius:7px;background:linear-gradient(135deg,#0a66c2,#0050a0);color:#fff;font-size:12px;font-weight:600;text-decoration:none;font-family:'IBM Plex Sans',sans-serif">Get your own agent →</a>
             <button onclick="document.getElementById('demo-banner').style.display='none'" style="padding:7px 12px;border-radius:7px;background:transparent;border:1px solid #1a2a3a;color:#3a5a70;font-size:11px;cursor:pointer;font-family:inherit">Dismiss</button>
           </div>
         </div>
@@ -293,9 +293,9 @@
     </div>
 
     <div class="footer" style="text-align:center;padding:20px 0 8px;border-top:1px solid #0d1f38;margin-top:8px">
-      <div style="font-size:13px;font-weight:700;color:#0a66c2;font-family:'IBM Plex Sans',sans-serif;margin-bottom:4px">CloudSentinel-AI</div>
+      <div style="font-size:13px;font-weight:700;color:#0a66c2;font-family:'IBM Plex Sans',sans-serif;margin-bottom:4px">PostFlow AI &nbsp;·&nbsp; CloudSentinel-AI</div>
       <div style="font-size:11px;color:#3a5a70;font-family:'IBM Plex Mono',monospace;margin-bottom:6px">Built by Gary Lakoskey &nbsp;·&nbsp; <a href="mailto:Gary.Lakoskey@cloudsentinel.ai" style="color:#7ec8e3;text-decoration:none">Gary.Lakoskey@cloudsentinel.ai</a></div>
-      <div style="font-size:12px;color:#4a7090;font-family:'IBM Plex Sans',sans-serif">Interested in your own AI LinkedIn Agent? &nbsp;<a href="mailto:Gary.Lakoskey@cloudsentinel.ai?subject=LinkedIn Agent - I want my own!" style="color:#00b4d8;text-decoration:none;font-weight:600">Get in touch →</a></div>
+      <div style="font-size:12px;color:#4a7090;font-family:'IBM Plex Sans',sans-serif">Want your own PostFlow AI agent? &nbsp;<a href="mailto:Gary.Lakoskey@cloudsentinel.ai?subject=PostFlow AI - I want my own!" style="color:#00b4d8;text-decoration:none;font-weight:600">Get in touch →</a></div>
     </div>
   </div>
 </div>
@@ -360,16 +360,8 @@ function showConnected() {
   document.getElementById("li-connected-name").textContent = liName || "";
   document.getElementById("preview-name").textContent = liName || "Your Name";
   loadStoredTitle();
-  // Only prompt if LinkedIn didn't return a headline AND user hasn't set one manually
-  if (!localStorage.getItem("li_title")) {
-    setTimeout(() => {
-      const title = prompt(`Hi ${liName || "there"}! We couldn't fetch your LinkedIn headline automatically. Enter it here:`, "");
-      if (title) {
-        localStorage.setItem("li_title", title);
-        updatePreviewTitle(title);
-      }
-    }, 800);
-  }
+  // Don't prompt - let user click the pencil icon in the preview card
+  // loadStoredTitle() already handles showing saved title
   updatePostBtn();
 }
 
@@ -659,7 +651,13 @@ function editTitle() {
 
 function updatePreviewTitle(title) {
   const el = document.getElementById("preview-title");
-  if (el) el.innerHTML = (title || "Your Title") + " · 1st <span style=\"font-size:10px;color:#bbb\">✏️</span>";
+  if (!el) return;
+  if (title) {
+    el.innerHTML = `${title} · 1st <span style="font-size:10px;color:#bbb" title="Click to edit">✏️</span>`;
+    el.style.color = "#555";
+  } else {
+    el.innerHTML = `<span style="color:#0a66c2;font-weight:600">+ Add your LinkedIn title</span> <span style="font-size:10px;color:#0a66c2">✏️</span>`;
+  }
 }
 
 function loadStoredTitle() {
