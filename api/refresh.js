@@ -1,14 +1,11 @@
 // api/refresh.js
-// Fetches this week's articles for a given site and topic
-// Includes retry logic for rate limiting
-
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = "claude-haiku-4-5-20251001";
 
 async function callClaude(messages, useSearch = false, retries = 3) {
   const body = {
     model: MODEL,
-    max_tokens: 1000,
+    max_tokens: 1200,
     messages,
     ...(useSearch ? { tools: [{ type: "web_search_20250305", name: "web_search" }] } : {}),
   };
@@ -25,15 +22,14 @@ async function callClaude(messages, useSearch = false, retries = 3) {
       body: JSON.stringify(body),
     });
 
-    // Rate limited — wait and retry
     if (res.status === 429) {
       const retryAfter = parseInt(res.headers.get("retry-after") || "20", 10);
-      console.log(`Rate limited on attempt ${attempt}/${retries}, waiting ${retryAfter}s...`);
+      console.log(`Rate limited attempt ${attempt}/${retries}, waiting ${retryAfter}s...`);
       if (attempt < retries) {
         await new Promise(r => setTimeout(r, retryAfter * 1000));
         continue;
       }
-      throw new Error("Rate limit exceeded — please wait a minute and try again.");
+      throw new Error("Rate limit exceeded — please wait a moment and try again.");
     }
 
     if (!res.ok) {
@@ -42,23 +38,79 @@ async function callClaude(messages, useSearch = false, retries = 3) {
     }
 
     const data = await res.json();
+    console.log("stop_reason:", data.stop_reason, "content blocks:", data.content?.length);
 
-    // If model used search tool, do a follow-up turn
+    // If model used search tool, send a strict follow-up
     if (data.stop_reason === "tool_use") {
       const followUp = [
         ...messages,
         { role: "assistant", content: data.content },
-        { role: "user", content: "Now return the JSON array of articles as requested. Only JSON, no markdown." },
+        {
+          role: "user",
+          content: `Based on those search results, output ONLY the JSON array below. No words before or after it. No markdown. Just the raw JSON array starting with [ and ending with ]:
+[{"title":"...","url":"https://...","summary":"one sentence","date":"Month DD, YYYY"}]`
+        },
       ];
       return callClaude(followUp, false, retries);
     }
 
-    return data.content
+    const text = data.content
       .filter(b => b.type === "text")
       .map(b => b.text)
       .join("\n")
       .trim();
+
+    console.log("Response text (first 300):", text.slice(0, 300));
+    return text;
   }
+}
+
+// Try multiple strategies to extract a JSON array from a string
+function extractArticles(raw) {
+  if (!raw) throw new Error("Empty response from API");
+
+  // Strategy 1: direct parse if it's already clean JSON
+  try {
+    const parsed = JSON.parse(raw.trim());
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+
+  // Strategy 2: strip markdown fences and parse
+  const stripped = raw.replace(/```json/gi, "").replace(/```/gi, "").trim();
+  try {
+    const parsed = JSON.parse(stripped);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+
+  // Strategy 3: find first [ ... ] block
+  const bracketMatch = stripped.match(/\[[\s\S]*?\]/);
+  if (bracketMatch) {
+    try {
+      const parsed = JSON.parse(bracketMatch[0]);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+
+  // Strategy 4: find a longer [ ... ] block (greedy)
+  const greedyMatch = raw.match(/\[[\s\S]*\]/);
+  if (greedyMatch) {
+    try {
+      const parsed = JSON.parse(greedyMatch[0]);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+
+  // Strategy 5: extract individual JSON objects and build array manually
+  const objMatches = raw.match(/\{[^{}]*"title"[^{}]*\}/g);
+  if (objMatches && objMatches.length > 0) {
+    const articles = [];
+    for (const obj of objMatches) {
+      try { articles.push(JSON.parse(obj)); } catch {}
+    }
+    if (articles.length > 0) return articles;
+  }
+
+  throw new Error(`No JSON found in response. Raw: ${raw.slice(0, 200)}`);
 }
 
 export default async function handler(req, res) {
@@ -77,16 +129,15 @@ export default async function handler(req, res) {
     console.log(`Searching ${site} for ${topic} articles since ${dateStr}`);
 
     const prompt = `Search ${site} for the 4 most recent articles about ${topic} published after ${dateStr}.
-Return ONLY a valid JSON array, no markdown, no explanation:
-[{"title":"...","url":"https://...","summary":"one sentence summary","date":"Month DD, YYYY"}]`;
+
+Output ONLY a JSON array. No text before or after. No markdown fences. Start your response with [ and end with ].
+
+[{"title":"article title","url":"https://full-url","summary":"one sentence summary","date":"Month DD, YYYY"}]`;
 
     const raw = await callClaude([{ role: "user", content: prompt }], true);
-    const clean = raw.replace(/```json|```/gi, "").trim();
-    const match = clean.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error("No JSON found in response");
+    const articles = extractArticles(raw);
 
-    const articles = JSON.parse(match[0]);
-    if (!Array.isArray(articles) || articles.length === 0) throw new Error("Empty articles array");
+    if (articles.length === 0) throw new Error("Empty articles array");
 
     console.log(`Found ${articles.length} articles`);
 
@@ -98,7 +149,6 @@ Return ONLY a valid JSON array, no markdown, no explanation:
 
   } catch (err) {
     console.error("Refresh error:", err.message);
-    // Return rate limit status so client can show friendly message
     const isRateLimit = err.message.includes("Rate limit") || err.message.includes("rate limit") || err.message.includes("429");
     return res.status(isRateLimit ? 429 : 500).json({ error: err.message, isRateLimit });
   }
