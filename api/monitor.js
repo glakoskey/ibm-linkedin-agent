@@ -2,7 +2,7 @@
 // Daily cron — searches IBM for breaking news, scores importance, triggers refresh if significant
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL = "claude-haiku-4-5-20251001";
+const MODEL = "claude-sonnet-4-5";
 import { kvGet, kvSet } from "./kv.js";
 
 async function callClaude(messages, useSearch = false) {
