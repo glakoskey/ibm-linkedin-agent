@@ -3,7 +3,7 @@
 // Includes retry logic for rate limiting
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL = "claude-sonnet-4-5";
+const MODEL = "claude-haiku-4-5-20251001";
 
 async function callClaude(messages, useSearch = false, retries = 3) {
   const body = {
