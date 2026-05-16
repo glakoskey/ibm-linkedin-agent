@@ -260,7 +260,7 @@
             <div class="li-avatar">👤</div>
             <div>
               <div class="li-name" id="preview-name">Your Name</div>
-              <div class="li-title">Your Title · 1st</div>
+              <div class="li-title" id="preview-title" onclick="editTitle()" title="Click to set your LinkedIn title" style="cursor:pointer">Your Title · 1st <span style="font-size:10px;color:#bbb">✏️</span></div>
               <div class="li-time">Just now · 🌐</div>
             </div>
           </div>
@@ -318,6 +318,7 @@ let currentPost = "";
 let liToken = null;
 let liUrn = null;
 let liName = null;
+let liHeadline = null;
 
 // ── Check for OAuth callback params ──
 function handleOAuthCallback() {
@@ -326,9 +327,11 @@ function handleOAuthCallback() {
     liToken = params.get("token");
     liUrn = params.get("urn");
     liName = params.get("name");
+    liHeadline = params.get("headline") || "";
     sessionStorage.setItem("li_token", liToken);
     sessionStorage.setItem("li_urn", liUrn);
     sessionStorage.setItem("li_name", liName);
+    if (liHeadline) localStorage.setItem("li_title", liHeadline);
     window.history.replaceState({}, "", "/");
     showConnected();
     showToast("LinkedIn connected successfully! 🎉", "success");
@@ -347,6 +350,7 @@ function checkStoredAuth() {
   liToken = sessionStorage.getItem("li_token");
   liUrn = sessionStorage.getItem("li_urn");
   liName = sessionStorage.getItem("li_name");
+  liHeadline = localStorage.getItem("li_title") || "";
   if (liToken) showConnected();
 }
 
@@ -355,6 +359,17 @@ function showConnected() {
   document.getElementById("li-connected-banner").style.display = "flex";
   document.getElementById("li-connected-name").textContent = liName || "";
   document.getElementById("preview-name").textContent = liName || "Your Name";
+  loadStoredTitle();
+  // Only prompt if LinkedIn didn't return a headline AND user hasn't set one manually
+  if (!localStorage.getItem("li_title")) {
+    setTimeout(() => {
+      const title = prompt(`Hi ${liName || "there"}! We couldn't fetch your LinkedIn headline automatically. Enter it here:`, "");
+      if (title) {
+        localStorage.setItem("li_title", title);
+        updatePreviewTitle(title);
+      }
+    }, 800);
+  }
   updatePostBtn();
 }
 
@@ -372,9 +387,11 @@ function disconnectLinkedIn() {
   sessionStorage.removeItem("li_token");
   sessionStorage.removeItem("li_urn");
   sessionStorage.removeItem("li_name");
+  localStorage.removeItem("li_title");
   document.getElementById("li-connect-banner").style.display = "flex";
   document.getElementById("li-connected-banner").style.display = "none";
   document.getElementById("preview-name").textContent = "Your Name";
+  updatePreviewTitle("");
   updatePostBtn();
 }
 
@@ -630,6 +647,26 @@ async function postToLinkedIn() {
   }
 }
 
+// ── LinkedIn Title ──
+function editTitle() {
+  const current = localStorage.getItem("li_title") || "";
+  const title = prompt("Enter your LinkedIn headline/title:", current);
+  if (title !== null) {
+    localStorage.setItem("li_title", title);
+    updatePreviewTitle(title);
+  }
+}
+
+function updatePreviewTitle(title) {
+  const el = document.getElementById("preview-title");
+  if (el) el.innerHTML = (title || "Your Title") + " · 1st <span style=\"font-size:10px;color:#bbb\">✏️</span>";
+}
+
+function loadStoredTitle() {
+  const stored = localStorage.getItem("li_title");
+  if (stored) updatePreviewTitle(stored);
+}
+
 // ── Toast ──
 function showToast(msg, type = "info") {
   const t = document.createElement("div");
@@ -801,6 +838,7 @@ function dismissBreakingNews() {
 // ── Init ──
 handleOAuthCallback();
 checkStoredAuth();
+loadStoredTitle();
 loadInsights();
 // Articles load on demand when user clicks Search Articles
 </script>
