@@ -47,7 +47,7 @@ async function callClaude(messages, useSearch = false, retries = 3) {
         { role: "assistant", content: data.content },
         {
           role: "user",
-          content: `Based on those search results, output ONLY the JSON array below. No words before or after it. No markdown. Just the raw JSON array starting with [ and ending with ]:
+          content: `Now output ONLY the JSON array of articles found. Nothing else. Start with [ end with ]:
 [{"title":"...","url":"https://...","summary":"one sentence","date":"Month DD, YYYY"}]`
         },
       ];
@@ -128,11 +128,10 @@ export default async function handler(req, res) {
 
     console.log(`Searching ${site} for ${topic} articles since ${dateStr}`);
 
-    const prompt = `Search ${site} for the 4 most recent articles about ${topic} published after ${dateStr}.
+    const prompt = `Search the web for the 4 most recent articles about ${topic} from ${site} published after ${dateStr}.
 
-Output ONLY a JSON array. No text before or after. No markdown fences. Start your response with [ and end with ].
-
-[{"title":"article title","url":"https://full-url","summary":"one sentence summary","date":"Month DD, YYYY"}]`;
+Output ONLY a JSON array. No explanation, no markdown, no extra text. Start with [ and end with ]:
+[{"title":"article title","url":"https://full-url","summary":"one sentence","date":"Month DD, YYYY"}]`;
 
     const raw = await callClaude([{ role: "user", content: prompt }], true);
     const articles = extractArticles(raw);
