@@ -124,6 +124,7 @@
       <div class="header-sub">Powered by CloudSentinel-AI  ·  Autonomous Content Publishing Agent</div>
     </div>
     <div class="badge"><div class="badge-dot"></div><span class="badge-text">THIS WEEK</span></div>
+      <button onclick="toggleHelp()" style="margin-left:8px;padding:5px 14px;border-radius:8px;background:transparent;border:1px solid #1a2a3a;color:#7ec8e3;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all 0.2s;white-space:nowrap">? Help</button>
   </div>
 
   <div class="grid">
@@ -289,6 +290,135 @@
       <div>
         <div class="banner-title">Weekly Cadence Ready</div>
         <div class="banner-text">Articles auto-refresh every Monday. Connect LinkedIn once and posting takes one click.</div>
+      </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;animation:slideIn 0.2s ease" onclick="if(event.target===this)toggleHelp()">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(680px,95vw);max-height:85vh;overflow-y:auto;background:linear-gradient(135deg,#0a1628,#0d1f38);border:1px solid #0a66c2;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+
+        <!-- Modal header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1a2a3a;position:sticky;top:0;background:linear-gradient(135deg,#0a1628,#0d1f38);z-index:1;border-radius:16px 16px 0 0">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#c9d6e8;font-family:'IBM Plex Sans',sans-serif">📖 How to Use PostFlow AI</div>
+            <div style="font-size:12px;color:#3a5a70;font-family:'IBM Plex Mono',monospace;margin-top:2px">Step-by-step guide</div>
+          </div>
+          <button onclick="toggleHelp()" style="padding:6px 12px;border-radius:8px;background:transparent;border:1px solid #1a2a3a;color:#3a5a70;cursor:pointer;font-size:18px;line-height:1;font-family:inherit">✕</button>
+        </div>
+
+        <!-- Modal body -->
+        <div style="padding:24px;display:grid;gap:20px">
+
+          <!-- Step 1 -->
+          <div style="display:flex;gap:16px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0a66c2,#00b4d8);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;font-family:'IBM Plex Sans',sans-serif">1</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700;color:#7ec8e3;margin-bottom:6px;font-family:'IBM Plex Sans',sans-serif">💼 Connect Your LinkedIn</div>
+              <div style="font-size:13px;color:#4a7090;line-height:1.7;font-family:'IBM Plex Sans',sans-serif">Click <strong style="color:#c9d6e8">Connect LinkedIn</strong> at the top of the page. You'll be redirected to LinkedIn to authorize PostFlow AI to post on your behalf. Your credentials are never stored — only a secure token is saved temporarily in your browser session.</div>
+              <div style="margin-top:8px;padding:8px 12px;background:#071020;border-radius:6px;border-left:3px solid #0a66c2">
+                <div style="font-size:12px;color:#3a5a70;font-family:'IBM Plex Mono',monospace">💡 You'll be asked for your LinkedIn headline — this appears in the post preview card. Click ✏️ in the preview to update it anytime.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:1px;background:#1a2a3a"></div>
+
+          <!-- Step 2 -->
+          <div style="display:flex;gap:16px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0a66c2,#00b4d8);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;font-family:'IBM Plex Sans',sans-serif">2</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700;color:#7ec8e3;margin-bottom:6px;font-family:'IBM Plex Sans',sans-serif">🔍 Search for Articles</div>
+              <div style="font-size:13px;color:#4a7090;line-height:1.7;font-family:'IBM Plex Sans',sans-serif">In <strong style="color:#c9d6e8">Step 1</strong>, enter a <strong style="color:#c9d6e8">website</strong> and <strong style="color:#c9d6e8">topic</strong> then click <strong style="color:#c9d6e8">🔍 Search Articles</strong>. Results appear in a few seconds.</div>
+              <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                ${[["ibm.com","AI"],["microsoft.com","Copilot"],["aws.amazon.com","Cloud"],["any website","any topic"]].map(([site,topic]) =>
+                  `<div style="padding:7px 10px;background:#071020;border-radius:6px;border:1px solid #1a2a3a;font-size:11px;font-family:'IBM Plex Mono',monospace"><span style="color:#0a66c2">${site}</span> <span style="color:#3a5a70">/</span> <span style="color:#7ec8e3">${topic}</span></div>`
+                ).join("")}
+              </div>
+              <div style="margin-top:8px;padding:8px 12px;background:#071020;border-radius:6px;border-left:3px solid #0a66c2">
+                <div style="font-size:12px;color:#3a5a70;font-family:'IBM Plex Mono',monospace">💡 Use 🔄 to force a fresh search if you want the very latest articles.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:1px;background:#1a2a3a"></div>
+
+          <!-- Step 3 -->
+          <div style="display:flex;gap:16px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0a66c2,#00b4d8);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;font-family:'IBM Plex Sans',sans-serif">3</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700;color:#7ec8e3;margin-bottom:6px;font-family:'IBM Plex Sans',sans-serif">📰 Select an Article</div>
+              <div style="font-size:13px;color:#4a7090;line-height:1.7;font-family:'IBM Plex Sans',sans-serif">Click any article from the results to select it. A <strong style="color:#c9d6e8">✓ checkmark</strong> appears on your selection. If a <strong style="color:#ff8c00">🚨 Breaking News</strong> banner appears at the top, click any article in it to use that instead.</div>
+            </div>
+          </div>
+
+          <div style="height:1px;background:#1a2a3a"></div>
+
+          <!-- Step 4 -->
+          <div style="display:flex;gap:16px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0a66c2,#00b4d8);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;font-family:'IBM Plex Sans',sans-serif">4</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700;color:#7ec8e3;margin-bottom:6px;font-family:'IBM Plex Sans',sans-serif">🎨 Choose Your Tone & Schedule</div>
+              <div style="font-size:13px;color:#4a7090;line-height:1.7;font-family:'IBM Plex Sans',sans-serif">In <strong style="color:#c9d6e8">Step 3</strong>, pick a writing tone and your preferred posting day. The app automatically highlights your <strong style="color:#00d46a">best-performing tone</strong> based on your past post engagement.</div>
+              <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                ${[["Thought Leader","Insightful & authoritative"],["Conversational","Friendly & approachable"],["Technical","Deep-dive & expert"],["Inspirational","Motivating & forward-looking"]].map(([tone,desc]) =>
+                  `<div style="padding:7px 10px;background:#071020;border-radius:6px;border:1px solid #1a2a3a"><div style="font-size:12px;font-weight:600;color:#7ec8e3;font-family:'IBM Plex Sans',sans-serif">${tone}</div><div style="font-size:11px;color:#3a5a70;font-family:'IBM Plex Sans',sans-serif">${desc}</div></div>`
+                ).join("")}
+              </div>
+            </div>
+          </div>
+
+          <div style="height:1px;background:#1a2a3a"></div>
+
+          <!-- Step 5 -->
+          <div style="display:flex;gap:16px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#0a66c2,#00b4d8);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;font-family:'IBM Plex Sans',sans-serif">5</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700;color:#7ec8e3;margin-bottom:6px;font-family:'IBM Plex Sans',sans-serif">🚀 Generate Your Post</div>
+              <div style="font-size:13px;color:#4a7090;line-height:1.7;font-family:'IBM Plex Sans',sans-serif">Click <strong style="color:#c9d6e8">🚀 Generate LinkedIn Post</strong>. Claude AI writes a professional post in ~3-5 seconds. A realistic LinkedIn preview card shows exactly how your post will look. Don't like it? Click <strong style="color:#c9d6e8">🔄 Generate Again</strong> for a fresh version.</div>
+            </div>
+          </div>
+
+          <div style="height:1px;background:#1a2a3a"></div>
+
+          <!-- Step 6 -->
+          <div style="display:flex;gap:16px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00a855,#007a3d);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;font-family:'IBM Plex Sans',sans-serif">6</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700;color:#00d46a;margin-bottom:6px;font-family:'IBM Plex Sans',sans-serif">📤 Post to LinkedIn</div>
+              <div style="font-size:13px;color:#4a7090;line-height:1.7;font-family:'IBM Plex Sans',sans-serif">Click <strong style="color:#c9d6e8">📤 Post to LinkedIn</strong> to publish directly to your profile — no copy/paste needed. Or click <strong style="color:#c9d6e8">📋 Copy Post</strong> to paste it manually. The post goes live on your LinkedIn immediately.</div>
+              <div style="margin-top:8px;padding:8px 12px;background:#071020;border-radius:6px;border-left:3px solid #00a855">
+                <div style="font-size:12px;color:#3a5a70;font-family:'IBM Plex Mono',monospace">✅ Your LinkedIn token expires every 60 days. Click Connect LinkedIn again to re-authorize when needed.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:1px;background:#1a2a3a"></div>
+
+          <!-- Features -->
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#7ec8e3;margin-bottom:12px;font-family:'IBM Plex Sans',sans-serif">✨ Automatic Features</div>
+            <div style="display:grid;gap:8px">
+              ${[
+                ["🚨","Breaking News Alerts","IBM newsroom is checked daily. If a major announcement scores 7+/10, an orange banner appears with articles ready to use."],
+                ["📊","Engagement Intelligence","After you post, your engagement is tracked automatically. Over time the app learns which tone performs best and highlights it for you."],
+                ["🔄","Weekly Auto-Refresh","Every Monday at 8am CT, new articles are fetched automatically so you always have fresh content waiting."],
+              ].map(([icon,title,desc]) =>
+                `<div style="display:flex;gap:12px;padding:10px 12px;background:#071020;border-radius:8px;border:1px solid #1a2a3a">
+                  <span style="font-size:18px;flex-shrink:0">${icon}</span>
+                  <div><div style="font-size:13px;font-weight:600;color:#c9d6e8;margin-bottom:2px;font-family:'IBM Plex Sans',sans-serif">${title}</div><div style="font-size:12px;color:#3a5a70;font-family:'IBM Plex Sans',sans-serif">${desc}</div></div>
+                </div>`
+              ).join("")}
+            </div>
+          </div>
+
+          <!-- Contact -->
+          <div style="text-align:center;padding:16px;background:rgba(10,102,194,0.08);border-radius:10px;border:1px dashed #1a3a5a">
+            <div style="font-size:13px;color:#7ec8e3;font-weight:600;margin-bottom:4px;font-family:'IBM Plex Sans',sans-serif">Want your own PostFlow AI agent?</div>
+            <div style="font-size:12px;color:#3a5a70;margin-bottom:10px;font-family:'IBM Plex Sans',sans-serif">Built by CloudSentinel-AI · Customized for your brand, topic, and team</div>
+            <a href="mailto:Gary.Lakoskey@cloudsentinel.ai?subject=PostFlow AI - I want my own!" style="display:inline-block;padding:9px 20px;border-radius:8px;background:linear-gradient(135deg,#0a66c2,#0050a0);color:#fff;font-size:13px;font-weight:600;text-decoration:none;font-family:'IBM Plex Sans',sans-serif">Get in touch with Gary →</a>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -664,6 +794,25 @@ function loadStoredTitle() {
   const stored = localStorage.getItem("li_title");
   if (stored) updatePreviewTitle(stored);
 }
+
+// ── Help Modal ──
+function toggleHelp() {
+  const modal = document.getElementById("help-modal");
+  modal.style.display = modal.style.display === "none" ? "flex" : "none";
+  if (modal.style.display === "flex") {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+}
+
+// Close on Escape key
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    const modal = document.getElementById("help-modal");
+    if (modal.style.display !== "none") toggleHelp();
+  }
+});
 
 // ── Toast ──
 function showToast(msg, type = "info") {
