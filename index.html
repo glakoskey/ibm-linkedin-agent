@@ -7,6 +7,8 @@
   <meta name="description" content="SentinelPost AI — autonomous content agent that finds industry articles, writes professional posts, and publishes directly to your LinkedIn profile. Built by CloudSentinel-AI." />
   <meta property="og:title" content="SentinelPost AI | CloudSentinel-AI" />
   <meta property="og:description" content="SentinelPost AI — find articles, generate posts, publish to LinkedIn instantly. Built by CloudSentinel-AI." />
+  <!-- Clerk Authentication -->
+  <script async crossorigin="anonymous" data-clerk-publishable-key="pk_test_bGFzdGluZy1oZXJvbi03Ni5jbGVyay5hY2NvdW50cy5kZXYk" src="https://lasting-heron-76.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" type="text/javascript"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -125,8 +127,24 @@
     </div>
     <div class="badge"><div class="badge-dot"></div><span class="badge-text">THIS WEEK</span></div>
       <button onclick="toggleHelp()" style="margin-left:8px;padding:5px 14px;border-radius:8px;background:transparent;border:1px solid #1a2a3a;color:#7ec8e3;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all 0.2s;white-space:nowrap">? Help</button>
+      <div id="clerk-user-menu" style="margin-left:10px;display:flex;align-items:center"></div>
   </div>
 
+  <!-- Auth Wall — shown when not signed in -->
+  <div id="auth-wall" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:#040D18">
+    <div style="width:min(420px,95vw);text-align:center;padding:40px 32px;background:linear-gradient(135deg,#0a1628,#0d1f38);border:1px solid #0a66c2;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+      <div style="font-size:48px;margin-bottom:16px">🛡️</div>
+      <div style="font-size:24px;font-weight:700;color:#c9d6e8;font-family:'IBM Plex Sans',sans-serif;margin-bottom:8px">SentinelPost AI</div>
+      <div style="font-size:13px;color:#4a7090;font-family:'IBM Plex Sans',sans-serif;margin-bottom:32px">by CloudSentinel-AI · Autonomous LinkedIn Content Agent</div>
+      <div id="clerk-sign-in"></div>
+      <div style="margin-top:24px;font-size:12px;color:#3a5a70;font-family:'IBM Plex Sans',sans-serif">
+        Need access? Contact <a href="mailto:Gary.Lakoskey@cloudsentinel.ai" style="color:#7ec8e3;text-decoration:none">Gary.Lakoskey@cloudsentinel.ai</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App — shown when signed in -->
+  <div id="app-content" style="display:none">
   <div class="grid">
 
     <!-- LinkedIn Connect -->
@@ -147,7 +165,7 @@
       </div>
     </div>
 
-    <!-- Demo Welcome Banner -->
+    <!-- Demo Welcome Banner — shown to new visitors -->
     <div id="demo-banner" style="background:linear-gradient(135deg,#0a1e38,#0d2a4a);border:1px solid #0a66c2;border-radius:14px;padding:18px 20px;animation:slideIn 0.4s ease;margin-bottom:0">
       <div style="display:flex;align-items:flex-start;gap:14px">
         <span style="font-size:28px;flex-shrink:0">👋</span>
@@ -418,6 +436,8 @@
       </div>
     </div>
 
+
+  </div> <!-- end app-content -->
 
     <div class="footer" style="text-align:center;padding:20px 0 8px;border-top:1px solid #0d1f38;margin-top:8px">
       <div style="font-size:13px;font-weight:700;color:#0a66c2;font-family:'IBM Plex Sans',sans-serif;margin-bottom:4px">SentinelPost AI &nbsp;·&nbsp; CloudSentinel-AI</div>
@@ -979,12 +999,84 @@ function dismissBreakingNews() {
   document.getElementById("breaking-news-banner").style.display = "none";
 }
 
+// ── Clerk Authentication ──
+async function initClerk() {
+  try {
+    await window.Clerk.load();
+
+    const user = window.Clerk.user;
+
+    if (!user) {
+      // Not signed in — show auth wall with Clerk sign-in component
+      document.getElementById("auth-wall").style.display = "flex";
+      document.getElementById("app-content").style.display = "none";
+      window.Clerk.mountSignIn(document.getElementById("clerk-sign-in"), {
+        appearance: {
+          variables: {
+            colorPrimary: "#0a66c2",
+            colorBackground: "#0a1628",
+            colorText: "#c9d6e8",
+            colorInputBackground: "#071020",
+            colorInputText: "#c9d6e8",
+            borderRadius: "8px",
+          }
+        }
+      });
+      return;
+    }
+
+    // Signed in — show app, add user menu to header
+    document.getElementById("auth-wall").style.display = "none";
+    document.getElementById("app-content").style.display = "block";
+
+    // Add user button to header
+    const userMenuEl = document.getElementById("clerk-user-menu");
+    if (userMenuEl) {
+      window.Clerk.mountUserButton(userMenuEl, {
+        appearance: {
+          variables: { colorPrimary: "#0a66c2" }
+        }
+      });
+    }
+
+    // Pre-fill LinkedIn name from Clerk if not already set
+    if (!sessionStorage.getItem("li_name") && user.fullName) {
+      document.getElementById("preview-name").textContent = user.fullName;
+    }
+
+    // Init the rest of the app
+    handleOAuthCallback();
+    checkStoredAuth();
+    loadStoredTitle();
+    loadInsights();
+
+  } catch (err) {
+    console.error("Clerk init error:", err.message);
+    // If Clerk fails, show the app anyway (graceful degradation)
+    document.getElementById("auth-wall").style.display = "none";
+    document.getElementById("app-content").style.display = "block";
+    handleOAuthCallback();
+    checkStoredAuth();
+    loadStoredTitle();
+    loadInsights();
+  }
+}
+
 // ── Init ──
-handleOAuthCallback();
-checkStoredAuth();
-loadStoredTitle();
-loadInsights();
-// Articles load on demand when user clicks Search Articles
+// Wait for Clerk script to load then initialize
+window.addEventListener("load", () => {
+  if (window.Clerk) {
+    initClerk();
+  } else {
+    // Fallback if Clerk script didn't load
+    document.getElementById("auth-wall").style.display = "none";
+    document.getElementById("app-content").style.display = "block";
+    handleOAuthCallback();
+    checkStoredAuth();
+    loadStoredTitle();
+    loadInsights();
+  }
+});
 </script>
 </body>
 </html>
