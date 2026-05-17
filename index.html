@@ -1024,21 +1024,22 @@ async function getClerkToken() {
 async function initClerk() {
   try {
     await window.Clerk.load();
+    console.log("Clerk.load() complete");
 
-    const user = window.Clerk.user;
-    console.log("Clerk loaded. User:", user?.id || "none");
+    // Clerk session restoration is async — poll until user state is known
+    // Clerk sets __unstable_isLoaded when fully ready
+    const user = await waitForClerkUser();
+    console.log("Clerk user resolved:", user?.id || "not signed in");
 
     if (!user) {
-      // Not signed in — show login wall
       showLoginWall();
       return;
     }
 
-    // User is signed in — ensure they have an active organization
+    // Set active organization if user has one
     if (!window.Clerk.organization) {
-      const memberships = user.organizationMemberships;
-      if (memberships && memberships.length > 0) {
-        // Set first org as active
+      const memberships = user.organizationMemberships || [];
+      if (memberships.length > 0) {
         console.log("Setting active org:", memberships[0].organization.name);
         await window.Clerk.setActive({
           organization: memberships[0].organization.id
@@ -1046,15 +1047,36 @@ async function initClerk() {
       }
     }
 
-    console.log("Active org:", window.Clerk.organization?.name || "none (personal account)");
-
-    // Now show the app
+    console.log("Org:", window.Clerk.organization?.name || "personal");
     await showApp(user);
 
   } catch (err) {
     console.error("Clerk init error:", err.message);
     showAppFallback();
   }
+}
+
+// Poll for Clerk user state — resolves when Clerk has definitively loaded auth
+function waitForClerkUser(timeoutMs = 5000) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+
+    function check() {
+      // Clerk is fully loaded when session is defined (even if null = signed out)
+      if (window.Clerk.session !== undefined) {
+        resolve(window.Clerk.user || null);
+        return;
+      }
+      // Timeout — treat as signed out
+      if (Date.now() - start > timeoutMs) {
+        console.log("Clerk user check timed out — treating as signed out");
+        resolve(null);
+        return;
+      }
+      setTimeout(check, 100);
+    }
+    check();
+  });
 }
 
 function showLoginWall() {
