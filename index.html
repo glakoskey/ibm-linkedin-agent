@@ -1011,7 +1011,9 @@ function dismissBreakingNews() {
 async function getClerkToken() {
   try {
     if (window.Clerk?.session) {
-      return await window.Clerk.session.getToken();
+      // Pass the active organization so the JWT includes org_id for tenant isolation
+      const orgId = window.Clerk.organization?.id;
+      return await window.Clerk.session.getToken(orgId ? { organizationId: orgId } : {});
     }
   } catch (e) {
     console.log("Could not get Clerk token:", e.message);
@@ -1047,6 +1049,23 @@ async function initClerk() {
     // Signed in — show app, add user menu to header
     document.getElementById("auth-wall").style.display = "none";
     document.getElementById("app-content").style.display = "block";
+
+    // If user has an org membership but no active org, set the first one
+    if (!window.Clerk.organization && user.organizationMemberships?.length > 0) {
+      try {
+        await window.Clerk.setActive({
+          organization: user.organizationMemberships[0].organization.id
+        });
+        console.log("Auto-set org:", user.organizationMemberships[0].organization.name);
+      } catch (e) {
+        console.log("Could not set active org:", e.message);
+      }
+    }
+
+    const activeOrg = window.Clerk.organization;
+    if (activeOrg) {
+      console.log("Active organization:", activeOrg.name, activeOrg.id);
+    }
 
     // Add user button to header
     const userMenuEl = document.getElementById("clerk-user-menu");
