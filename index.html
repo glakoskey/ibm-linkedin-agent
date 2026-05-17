@@ -1024,40 +1024,47 @@ async function getClerkToken() {
 async function initClerk() {
   try {
     await window.Clerk.load();
-    console.log("Clerk loaded. User:", window.Clerk.user?.id || "none");
 
-    // Small delay to let Clerk fully hydrate user state
-    await new Promise(r => setTimeout(r, 200));
+    // Use Clerk's auth state listener — fires once auth state is definitively known
+    window.Clerk.addListener(({ user }) => {
+      console.log("Clerk auth state:", user?.id || "signed out");
 
-    if (window.Clerk.user) {
-      // Already signed in — go straight to app
-      await showApp(window.Clerk.user);
-    } else {
-      // Not signed in — show login screen
-      document.getElementById("auth-wall").style.display = "flex";
-      document.getElementById("app-content").style.display = "none";
-      window.Clerk.mountSignIn(document.getElementById("clerk-sign-in"), {
-        afterSignInUrl: window.location.href,
-        appearance: {
-          variables: {
-            colorPrimary: "#0a66c2",
-            colorBackground: "#0d1f38",
-            colorText: "#c9d6e8",
-            colorInputBackground: "#071020",
-            colorInputText: "#c9d6e8",
-            borderRadius: "10px",
-          },
-          elements: {
-            card: "background: #0d1f38; border: 1px solid #1a3a5a; box-shadow: 0 20px 60px rgba(0,0,0,0.5);",
-            headerTitle: "color: #c9d6e8; font-size: 22px;",
-            headerSubtitle: "color: #4a7090;",
-            socialButtonsBlockButton: "background: #071020; border: 1px solid #1a3a5a; color: #c9d6e8;",
-            formFieldInput: "background: #071020; border: 1px solid #1a3a5a; color: #c9d6e8;",
-            footerActionLink: "color: #0a66c2;",
-          }
+      if (user) {
+        // Signed in — show app
+        showApp(user);
+      } else {
+        // Not signed in — show login wall
+        document.getElementById("auth-wall").style.display = "flex";
+        document.getElementById("app-content").style.display = "none";
+
+        // Only mount sign-in if not already mounted
+        const signInEl = document.getElementById("clerk-sign-in");
+        if (signInEl && !signInEl.hasChildNodes()) {
+          window.Clerk.mountSignIn(signInEl, {
+            afterSignInUrl: window.location.href,
+            appearance: {
+              variables: {
+                colorPrimary: "#0a66c2",
+                colorBackground: "#0d1f38",
+                colorText: "#c9d6e8",
+                colorInputBackground: "#071020",
+                colorInputText: "#c9d6e8",
+                borderRadius: "10px",
+              },
+              elements: {
+                card: "background: #0d1f38; border: 1px solid #1a3a5a;",
+                headerTitle: "color: #c9d6e8;",
+                headerSubtitle: "color: #4a7090;",
+                socialButtonsBlockButton: "background: #071020; border: 1px solid #1a3a5a; color: #c9d6e8;",
+                formFieldInput: "background: #071020; border: 1px solid #1a3a5a; color: #c9d6e8;",
+                footerActionLink: "color: #0a66c2;",
+              }
+            }
+          });
         }
-      });
-    }
+      }
+    });
+
   } catch (err) {
     console.error("Clerk init error:", err.message);
     showAppFallback();
