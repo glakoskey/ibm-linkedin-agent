@@ -141,7 +141,10 @@
       </div>
       <div class="header-sub">Powered by CloudSentinel-AI  ·  Autonomous Content Publishing Agent</div>
     </div>
-    <div class="badge"><div class="badge-dot"></div><span class="badge-text">THIS WEEK</span></div>
+    <div class="badge" id="status-badge" onclick="checkHealth()" title="Click to check system status" style="cursor:pointer">
+        <div class="badge-dot" id="status-dot"></div>
+        <span class="badge-text" id="status-text">CHECKING...</span>
+      </div>
       <button onclick="toggleHelp()" style="margin-left:8px;padding:5px 14px;border-radius:8px;background:transparent;border:1px solid #1a2a3a;color:#7ec8e3;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all 0.2s;white-space:nowrap">? Help</button>
       <div id="clerk-user-menu" style="margin-left:10px;display:flex;align-items:center"></div>
   </div>
@@ -882,6 +885,47 @@ function loadStoredTitle() {
   if (stored) updatePreviewTitle(stored);
 }
 
+// ── Health Status ──
+async function checkHealth() {
+  const dot  = document.getElementById("status-dot");
+  const text = document.getElementById("status-text");
+  if (!dot || !text) return;
+
+  // Show checking state
+  dot.style.background = "#ffaa00";
+  text.textContent = "CHECKING...";
+
+  try {
+    const res = await fetch("/api/health");
+    const data = await res.json();
+
+    if (data.status === "healthy") {
+      dot.style.background = "#00d46a";
+      text.textContent = "ALL SYSTEMS GO";
+      text.style.color = "#00d46a";
+    } else if (data.status === "degraded") {
+      dot.style.background = "#ffaa00";
+      text.textContent = "DEGRADED";
+      text.style.color = "#ffaa00";
+      // Show which service is down
+      const failed = Object.entries(data.checks)
+        .filter(([,v]) => v !== "ok")
+        .map(([k]) => k)
+        .join(", ");
+      showToast(`⚠️ Service issue: ${failed}`, "error");
+    } else {
+      dot.style.background = "#ff4444";
+      text.textContent = "SERVICE DOWN";
+      text.style.color = "#ff4444";
+      showToast("❌ Critical services are down — please contact support", "error");
+    }
+  } catch (err) {
+    dot.style.background = "#ff4444";
+    text.textContent = "ERROR";
+    text.style.color = "#ff4444";
+  }
+}
+
 // ── Help Modal ──
 function toggleHelp() {
   const modal = document.getElementById("help-modal");
@@ -1244,6 +1288,10 @@ window.addEventListener("load", () => {
     const banner = document.getElementById("safari-warning");
     if (banner) banner.style.display = "block";
   }
+
+  // Run health check on load and then every 5 minutes
+  checkHealth();
+  setInterval(checkHealth, 5 * 60 * 1000);
 
   // Clean up any Clerk redirect params in URL
   const urlParams = new URLSearchParams(window.location.search);
