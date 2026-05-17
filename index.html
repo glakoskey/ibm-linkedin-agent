@@ -1024,95 +1024,103 @@ async function getClerkToken() {
 async function initClerk() {
   try {
     await window.Clerk.load();
+    console.log("Clerk loaded. User:", window.Clerk.user?.id || "none");
 
-    const user = window.Clerk.user;
+    // Small delay to let Clerk fully hydrate user state
+    await new Promise(r => setTimeout(r, 200));
 
-    if (!user) {
-      // Not signed in — show auth wall with Clerk sign-in component
+    if (window.Clerk.user) {
+      // Already signed in — go straight to app
+      await showApp(window.Clerk.user);
+    } else {
+      // Not signed in — show login screen
       document.getElementById("auth-wall").style.display = "flex";
       document.getElementById("app-content").style.display = "none";
       window.Clerk.mountSignIn(document.getElementById("clerk-sign-in"), {
+        afterSignInUrl: window.location.href,
         appearance: {
           variables: {
             colorPrimary: "#0a66c2",
-            colorBackground: "#0a1628",
+            colorBackground: "#0d1f38",
             colorText: "#c9d6e8",
             colorInputBackground: "#071020",
             colorInputText: "#c9d6e8",
-            borderRadius: "8px",
+            borderRadius: "10px",
+          },
+          elements: {
+            card: "background: #0d1f38; border: 1px solid #1a3a5a; box-shadow: 0 20px 60px rgba(0,0,0,0.5);",
+            headerTitle: "color: #c9d6e8; font-size: 22px;",
+            headerSubtitle: "color: #4a7090;",
+            socialButtonsBlockButton: "background: #071020; border: 1px solid #1a3a5a; color: #c9d6e8;",
+            formFieldInput: "background: #071020; border: 1px solid #1a3a5a; color: #c9d6e8;",
+            footerActionLink: "color: #0a66c2;",
           }
         }
       });
-      return;
     }
-
-    // Signed in — show app, add user menu to header
-    document.getElementById("auth-wall").style.display = "none";
-    document.getElementById("app-content").style.display = "block";
-
-    // If user has an org membership but no active org, set the first one
-    if (!window.Clerk.organization && user.organizationMemberships?.length > 0) {
-      try {
-        await window.Clerk.setActive({
-          organization: user.organizationMemberships[0].organization.id
-        });
-        console.log("Auto-set org:", user.organizationMemberships[0].organization.name);
-      } catch (e) {
-        console.log("Could not set active org:", e.message);
-      }
-    }
-
-    const activeOrg = window.Clerk.organization;
-    if (activeOrg) {
-      console.log("Active organization:", activeOrg.name, activeOrg.id);
-    }
-
-    // Add user button to header
-    const userMenuEl = document.getElementById("clerk-user-menu");
-    if (userMenuEl) {
-      window.Clerk.mountUserButton(userMenuEl, {
-        appearance: {
-          variables: { colorPrimary: "#0a66c2" }
-        }
-      });
-    }
-
-    // Pre-fill LinkedIn name from Clerk if not already set
-    if (!sessionStorage.getItem("li_name") && user.fullName) {
-      document.getElementById("preview-name").textContent = user.fullName;
-    }
-
-    // Init the rest of the app
-    handleOAuthCallback();
-    checkStoredAuth();
-    loadStoredTitle();
-    loadInsights();
-
   } catch (err) {
     console.error("Clerk init error:", err.message);
-    // If Clerk fails, show the app anyway (graceful degradation)
-    document.getElementById("auth-wall").style.display = "none";
-    document.getElementById("app-content").style.display = "block";
-    handleOAuthCallback();
-    checkStoredAuth();
-    loadStoredTitle();
-    loadInsights();
+    showAppFallback();
   }
 }
 
+async function showApp(user) {
+  document.getElementById("auth-wall").style.display = "none";
+  document.getElementById("app-content").style.display = "block";
+
+  // Set active organization if not already set
+  if (!window.Clerk.organization && user.organizationMemberships?.length > 0) {
+    try {
+      await window.Clerk.setActive({
+        organization: user.organizationMemberships[0].organization.id
+      });
+      console.log("Active org:", user.organizationMemberships[0].organization.name);
+    } catch (e) {
+      console.log("Could not set active org:", e.message);
+    }
+  }
+
+  // Mount user button in header
+  const userMenuEl = document.getElementById("clerk-user-menu");
+  if (userMenuEl && !userMenuEl.hasChildNodes()) {
+    window.Clerk.mountUserButton(userMenuEl, {
+      appearance: { variables: { colorPrimary: "#0a66c2" } }
+    });
+  }
+
+  // Pre-fill name from Clerk
+  if (!sessionStorage.getItem("li_name") && user.fullName) {
+    document.getElementById("preview-name").textContent = user.fullName;
+  }
+
+  // Init app
+  handleOAuthCallback();
+  checkStoredAuth();
+  loadStoredTitle();
+  loadInsights();
+}
+
+function showAppFallback() {
+  document.getElementById("auth-wall").style.display = "none";
+  document.getElementById("app-content").style.display = "block";
+  handleOAuthCallback();
+  checkStoredAuth();
+  loadStoredTitle();
+  loadInsights();
+}
+
 // ── Init ──
-// Wait for Clerk script to load then initialize
+// Clerk fires __clerk_loaded when ready — more reliable than window.load
 window.addEventListener("load", () => {
+  // Keep auth wall hidden until Clerk confirms state
+  document.getElementById("auth-wall").style.display = "none";
+  document.getElementById("app-content").style.display = "none";
+
   if (window.Clerk) {
     initClerk();
   } else {
-    // Fallback if Clerk script didn't load
-    document.getElementById("auth-wall").style.display = "none";
-    document.getElementById("app-content").style.display = "block";
-    handleOAuthCallback();
-    checkStoredAuth();
-    loadStoredTitle();
-    loadInsights();
+    // Clerk script not loaded — show app without auth
+    showAppFallback();
   }
 });
 </script>
