@@ -8,7 +8,15 @@
   <meta property="og:title" content="SentinelPost AI | CloudSentinel-AI" />
   <meta property="og:description" content="SentinelPost AI — find articles, generate posts, publish to LinkedIn instantly. Built by CloudSentinel-AI." />
   <!-- Clerk Authentication -->
-  <script async crossorigin="anonymous" data-clerk-publishable-key="pk_test_bGFzdGluZy1oZXJvbi03Ni5jbGVyay5hY2NvdW50cy5kZXYk" src="https://lasting-heron-76.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" type="text/javascript"></script>
+  <script
+    async
+    crossorigin="anonymous"
+    data-clerk-publishable-key="pk_test_bGFzdGluZy1oZXJvbi03Ni5jbGVyay5hY2NvdW50cy5kZXYk"
+    data-clerk-after-sign-in-url="https://sentinelpost.vercel.app"
+    data-clerk-after-sign-up-url="https://sentinelpost.vercel.app"
+    src="https://lasting-heron-76.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+    type="text/javascript">
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -1155,16 +1163,32 @@ function showAppFallback() {
 }
 
 // ── Init ──
-// Clerk fires __clerk_loaded when ready — more reliable than window.load
 window.addEventListener("load", () => {
-  // Keep auth wall hidden until Clerk confirms state
   document.getElementById("auth-wall").style.display = "none";
   document.getElementById("app-content").style.display = "none";
+
+  // Safari blocks Clerk cookies in dev mode due to ITP restrictions
+  // Until production domain is set up, bypass auth on Safari
+  // Check if we just returned from Clerk's sign-in redirect
+  // Clerk appends __clerk_status to the URL on redirect
+  const urlParams = new URLSearchParams(window.location.search);
+  const clerkStatus = urlParams.get("__clerk_status");
+  if (clerkStatus) {
+    // Just signed in — clean the URL and init Clerk normally
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, "", cleanUrl);
+  }
+
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if (isSafari) {
+    console.log("Safari detected — bypassing Clerk auth (dev mode limitation)");
+    showAppFallback();
+    return;
+  }
 
   if (window.Clerk) {
     initClerk();
   } else {
-    // Clerk script not loaded — show app without auth
     showAppFallback();
   }
 });
