@@ -1023,60 +1023,61 @@ async function getClerkToken() {
 
 async function initClerk() {
   try {
-    await window.Clerk.load();
-    console.log("Clerk.load() complete");
+    // Use Clerk's recommended approach for vanilla JS:
+    // Pass afterSignInUrl so Clerk redirects back after sign-in
+    await window.Clerk.load({
+      afterSignInUrl: window.location.href,
+      afterSignUpUrl: window.location.href,
+    });
 
-    // Clerk session restoration is async — poll until user state is known
-    // Clerk sets __unstable_isLoaded when fully ready
-    const user = await waitForClerkUser();
-    console.log("Clerk user resolved:", user?.id || "not signed in");
+    // Clerk exposes isReady via client property
+    // Wait for client to be fully loaded
+    await new Promise((resolve) => {
+      if (window.Clerk.client) { resolve(); return; }
+      const interval = setInterval(() => {
+        if (window.Clerk.client) { clearInterval(interval); resolve(); }
+      }, 50);
+      setTimeout(() => { clearInterval(interval); resolve(); }, 3000);
+    });
 
-    if (!user) {
+    const sessions = window.Clerk.client?.activeSessions || [];
+    const hasSession = sessions.length > 0;
+    const user = window.Clerk.user;
+
+    console.log("Clerk ready. Sessions:", sessions.length, "User:", user?.id || "none", "HasSession:", hasSession);
+
+    if (!hasSession && !user) {
       showLoginWall();
       return;
     }
 
-    // Set active organization if user has one
+    // If we have sessions but user isn't set yet, activate the first session
+    if (hasSession && !user) {
+      console.log("Activating session...");
+      await window.Clerk.setActive({ session: sessions[0].id });
+    }
+
+    const activeUser = window.Clerk.user;
+    if (!activeUser) {
+      showLoginWall();
+      return;
+    }
+
+    // Set active organization
     if (!window.Clerk.organization) {
-      const memberships = user.organizationMemberships || [];
+      const memberships = activeUser.organizationMemberships || [];
       if (memberships.length > 0) {
-        console.log("Setting active org:", memberships[0].organization.name);
-        await window.Clerk.setActive({
-          organization: memberships[0].organization.id
-        });
+        await window.Clerk.setActive({ organization: memberships[0].organization.id });
+        console.log("Active org:", memberships[0].organization.name);
       }
     }
 
-    console.log("Org:", window.Clerk.organization?.name || "personal");
-    await showApp(user);
+    await showApp(activeUser);
 
   } catch (err) {
     console.error("Clerk init error:", err.message);
     showAppFallback();
   }
-}
-
-// Poll for Clerk user state — resolves when Clerk has definitively loaded auth
-function waitForClerkUser(timeoutMs = 5000) {
-  return new Promise((resolve) => {
-    const start = Date.now();
-
-    function check() {
-      // Clerk is fully loaded when session is defined (even if null = signed out)
-      if (window.Clerk.session !== undefined) {
-        resolve(window.Clerk.user || null);
-        return;
-      }
-      // Timeout — treat as signed out
-      if (Date.now() - start > timeoutMs) {
-        console.log("Clerk user check timed out — treating as signed out");
-        resolve(null);
-        return;
-      }
-      setTimeout(check, 100);
-    }
-    check();
-  });
 }
 
 function showLoginWall() {
