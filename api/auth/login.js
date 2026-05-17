@@ -12,7 +12,8 @@ export default function handler(req, res) {
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("scope", scope);
   authUrl.searchParams.set("state", state);
-  authUrl.searchParams.set("prompt", "consent");
+  // Removed prompt=consent — was forcing security challenge on every login,
+  // breaking the OAuth flow on iPhone
 
   res.setHeader("Set-Cookie", `li_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
   res.redirect(authUrl.toString());
