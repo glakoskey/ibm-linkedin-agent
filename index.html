@@ -1018,11 +1018,25 @@ function dismissBreakingNews() {
 // ── Clerk Authentication ──
 async function getClerkToken() {
   try {
-    if (window.Clerk?.session) {
-      // getToken() automatically includes org_id if there is an active organization
+    // Try window.Clerk.session first
+    if (window.Clerk?.session?.getToken) {
       const token = await window.Clerk.session.getToken();
-      return token;
+      if (token) { console.log("Token from Clerk.session"); return token; }
     }
+    // Try active sessions from client
+    const sessions = window.Clerk?.client?.activeSessions;
+    if (sessions?.length > 0) {
+      const token = await sessions[0].getToken();
+      if (token) { console.log("Token from activeSessions[0]"); return token; }
+    }
+    // Try all sessions
+    const allSessions = window.Clerk?.client?.sessions;
+    if (allSessions?.length > 0) {
+      await window.Clerk.setActive({ session: allSessions[0].id });
+      const token = await allSessions[0].getToken();
+      if (token) { console.log("Token after setActive"); return token; }
+    }
+    console.log("No Clerk session available");
   } catch (e) {
     console.log("Could not get Clerk token:", e.message);
   }
@@ -1154,12 +1168,10 @@ async function showApp(user) {
 }
 
 function showAppFallback() {
-  document.getElementById("auth-wall").style.display = "none";
-  document.getElementById("app-content").style.display = "block";
-  handleOAuthCallback();
-  checkStoredAuth();
-  loadStoredTitle();
-  loadInsights();
+  // Only used when Clerk is unavailable — show error on login wall
+  document.getElementById("auth-wall").style.display = "flex";
+  document.getElementById("app-content").style.display = "none";
+  console.log("Clerk unavailable — showing login wall");
 }
 
 // ── Init ──
@@ -1169,27 +1181,19 @@ window.addEventListener("load", () => {
 
   // Safari blocks Clerk cookies in dev mode due to ITP restrictions
   // Until production domain is set up, bypass auth on Safari
-  // Check if we just returned from Clerk's sign-in redirect
-  // Clerk appends __clerk_status to the URL on redirect
+  // Clean up any Clerk redirect params in URL
   const urlParams = new URLSearchParams(window.location.search);
-  const clerkStatus = urlParams.get("__clerk_status");
-  if (clerkStatus) {
-    // Just signed in — clean the URL and init Clerk normally
-    const cleanUrl = window.location.pathname;
-    window.history.replaceState({}, "", cleanUrl);
-  }
-
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  if (isSafari) {
-    console.log("Safari detected — bypassing Clerk auth (dev mode limitation)");
-    showAppFallback();
-    return;
+  if (urlParams.get("__clerk_status")) {
+    window.history.replaceState({}, "", window.location.pathname);
   }
 
   if (window.Clerk) {
     initClerk();
   } else {
-    showAppFallback();
+    // Clerk script failed to load — show login wall with error
+    document.getElementById("auth-wall").style.display = "flex";
+    document.getElementById("app-content").style.display = "none";
+    document.getElementById("clerk-sign-in").innerHTML = '<p style="color:#ff6b6b;text-align:center;padding:20px">Authentication service failed to load. Please refresh the page.</p>';
   }
 });
 </script>
