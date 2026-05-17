@@ -1,17 +1,16 @@
-// api/refresh.js — with rate limiting, input sanitization, security headers, KV caching
+// api/refresh.js
 import { rateLimit, sanitizeInput, setSecurityHeaders } from "./middleware.js";
+import { auditLog, ACTIONS } from "./audit.js";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
-const MODEL = "claude-sonnet-4-5";
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+const TAVILY_API_KEY    = process.env.TAVILY_API_KEY;
+const MODEL             = "claude-sonnet-4-5";
+const KV_URL            = process.env.KV_REST_API_URL;
+const KV_TOKEN          = process.env.KV_REST_API_TOKEN;
 
 async function kvGet(key) {
   try {
-    const res = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, {
-      headers: { Authorization: `Bearer ${KV_TOKEN}` },
-    });
+    const res = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${KV_TOKEN}` } });
     const data = await res.json();
     if (!data.result) return null;
     return JSON.parse(data.result);
@@ -30,13 +29,7 @@ async function tavilySearch(query) {
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      api_key: TAVILY_API_KEY,
-      query,
-      search_depth: "basic",
-      max_results: 6,
-      include_published_date: true,
-    }),
+    body: JSON.stringify({ api_key: TAVILY_API_KEY, query, search_depth: "basic", max_results: 6, include_published_date: true }),
   });
   if (!res.ok) throw new Error(`Tavily HTTP ${res.status}`);
   const data = await res.json();
@@ -44,22 +37,11 @@ async function tavilySearch(query) {
 }
 
 async function formatWithClaude(results, site, topic) {
-  const context = results
-    .map((r, i) => `${i+1}. Title: ${r.title}\n   URL: ${r.url}\n   Content: ${r.content?.slice(0, 200) || ""}\n   Date: ${r.published_date || "recent"}`)
-    .join("\n\n");
-
+  const context = results.map((r, i) => `${i+1}. Title: ${r.title}\n   URL: ${r.url}\n   Content: ${r.content?.slice(0, 200) || ""}\n   Date: ${r.published_date || "recent"}`).join("\n\n");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 800,
-      messages: [{ role: "user", content: `From these search results about ${topic} from ${site}, pick the best 4 and return ONLY a JSON array:\n${context}\n\n[{"title":"...","url":"https://...","summary":"one sentence","date":"Month DD, YYYY"}]` }],
-    }),
+    headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: MODEL, max_tokens: 800, messages: [{ role: "user", content: `From these search results about ${topic} from ${site}, pick the best 4 and return ONLY a JSON array:\n${context}\n\n[{"title":"...","url":"https://...","summary":"one sentence","date":"Month DD, YYYY"}]` }] }),
   });
   if (!res.ok) throw new Error(`Claude HTTP ${res.status}`);
   const data = await res.json();
@@ -77,25 +59,20 @@ function extractArticles(raw) {
 
 export default async function handler(req, res) {
   setSecurityHeaders(res);
+  if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  if (req.method !== "GET" && req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  // Rate limit: 30 requests per minute per IP
   const limit = await rateLimit(req, 30, 60);
   if (limit.limited) {
+    await auditLog(ACTIONS.RATE_LIMITED, { endpoint: "/api/refresh", ip: limit.ip }, req);
     return res.status(429).json({ error: "Too many requests — please wait a minute.", isRateLimit: true });
   }
 
   try {
-    // Sanitize and validate inputs
-    const site = sanitizeInput(req.query.site || "ibm.com", 100);
+    const site  = sanitizeInput(req.query.site  || "ibm.com", 100);
     const topic = sanitizeInput(req.query.topic || "AI", 100);
     const force = req.query.force === "1";
     const today = new Date();
 
-    // Validate site looks like a domain
     if (!/^[a-zA-Z0-9][a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}/.test(site)) {
       return res.status(400).json({ error: "Invalid site format. Use a domain like ibm.com" });
     }
@@ -105,7 +82,7 @@ export default async function handler(req, res) {
     if (!force) {
       const cached = await kvGet(cacheKey);
       if (cached?.articles?.length > 0) {
-        console.log(`Cache hit: ${cacheKey}`);
+        await auditLog(ACTIONS.SEARCH, { site, topic, cached: true, resultCount: cached.articles.length }, req);
         return res.status(200).json({ ...cached, fromCache: true });
       }
     }
@@ -114,7 +91,7 @@ export default async function handler(req, res) {
     const results = await tavilySearch(`${topic} site:${site}`);
     if (!results.length) throw new Error(`No results found for ${topic} on ${site}`);
 
-    const raw = await formatWithClaude(results, site, topic);
+    const raw      = await formatWithClaude(results, site, topic);
     const articles = extractArticles(raw);
     if (!articles.length) throw new Error("No articles extracted");
 
@@ -125,6 +102,10 @@ export default async function handler(req, res) {
     };
 
     await kvSet(cacheKey, result, 86400);
+
+    // Audit log the search
+    await auditLog(ACTIONS.SEARCH, { site, topic, cached: false, resultCount: articles.length }, req);
+
     return res.status(200).json(result);
 
   } catch (err) {

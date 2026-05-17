@@ -1,5 +1,6 @@
-// api/post.js — with rate limiting, token encryption, security headers
+// api/post.js
 import { rateLimit, encryptToken, setSecurityHeaders } from "./middleware.js";
+import { auditLog, ACTIONS } from "./audit.js";
 
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
@@ -14,20 +15,18 @@ async function kvSet(key, value, exSeconds = 604800) {
 
 export default async function handler(req, res) {
   setSecurityHeaders(res);
-
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // Rate limit: 5 posts per minute per IP (posting is high-value action)
+  // Rate limit: 5 posts per minute
   const limit = await rateLimit(req, 5, 60);
   if (limit.limited) {
+    await auditLog(ACTIONS.RATE_LIMITED, { endpoint: "/api/post", ip: limit.ip }, req);
     return res.status(429).json({ error: "Too many requests. Please wait before posting again." });
   }
 
   const { token, urn, text, tone, articleTitle, articleUrl } = req.body;
   if (!token || !urn || !text) return res.status(400).json({ error: "Missing required fields" });
-
-  // Basic content validation — prevent empty or excessively long posts
-  if (text.length < 50) return res.status(400).json({ error: "Post content too short" });
+  if (text.length < 50)   return res.status(400).json({ error: "Post content too short" });
   if (text.length > 3000) return res.status(400).json({ error: "Post content too long" });
 
   try {
@@ -41,12 +40,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         author: `urn:li:person:${urn}`,
         lifecycleState: "PUBLISHED",
-        specificContent: {
-          "com.linkedin.ugc.ShareContent": {
-            shareCommentary: { text },
-            shareMediaCategory: "NONE",
-          },
-        },
+        specificContent: { "com.linkedin.ugc.ShareContent": { shareCommentary: { text }, shareMediaCategory: "NONE" } },
         visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
       }),
     });
@@ -57,20 +51,26 @@ export default async function handler(req, res) {
     const postId = postData.id;
     console.log("Published post:", postId);
 
-    // Track post — encrypt token before storing in KV
+    // Audit log the publish event
+    await auditLog(ACTIONS.PUBLISH, {
+      postId,
+      tone: tone || "unknown",
+      articleTitle: articleTitle || "",
+      articleUrl: articleUrl || "",
+      urn,
+      postLength: text.length,
+    }, req);
+
+    // Track + encrypt token in KV
     try {
       const encryptedToken = encryptToken(token);
       await kvSet(`post:${postId}`, {
         postId, tone: tone || "unknown",
-        articleTitle: articleTitle || "",
-        articleUrl: articleUrl || "",
+        articleTitle: articleTitle || "", articleUrl: articleUrl || "",
         urn, publishedAt: new Date().toISOString(),
-        engagement: { likes: 0, comments: 0, shares: 0 },
-        score: 0, checked: false,
+        engagement: { likes: 0, comments: 0, shares: 0 }, score: 0, checked: false,
       });
-      // Store encrypted token for engagement tracking
-      await kvSet(`token:${urn}`, encryptedToken, 5184000); // 60 days
-      console.log("Post tracked with encrypted token");
+      await kvSet(`token:${urn}`, encryptedToken, 5184000);
     } catch (trackErr) {
       console.log("Tracking failed (non-fatal):", trackErr.message);
     }
