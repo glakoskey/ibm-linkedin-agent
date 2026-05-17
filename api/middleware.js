@@ -1,10 +1,12 @@
 // api/middleware.js
-// Shared security middleware — rate limiting, input sanitization, token encryption
+// Shared security middleware — rate limiting, input sanitization, AES-256-GCM encryption, security headers
 
-import { kvGet, kvSet } from "./kv.js";
+import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+
+const KV_URL = process.env.KV_REST_API_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
 // ── Rate Limiting ──
-// Uses KV to track request counts per IP per minute
 export async function rateLimit(req, maxRequests = 10, windowSeconds = 60) {
   const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim()
     || req.headers["x-real-ip"]
@@ -13,76 +15,117 @@ export async function rateLimit(req, maxRequests = 10, windowSeconds = 60) {
   const key = `ratelimit:${ip}:${Math.floor(Date.now() / (windowSeconds * 1000))}`;
 
   try {
-    const current = await kvGet(key) || 0;
+    const getRes = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${KV_TOKEN}` },
+    });
+    const getData = await getRes.json();
+    const current = parseInt(getData.result || "0", 10);
+
     if (current >= maxRequests) {
       return { limited: true, remaining: 0, ip };
     }
-    // Increment counter with TTL
-    const KV_URL = process.env.KV_REST_API_URL;
-    const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+
     await fetch(`${KV_URL}/set/${encodeURIComponent(key)}/${current + 1}?ex=${windowSeconds}`, {
       headers: { Authorization: `Bearer ${KV_TOKEN}` },
     });
+
     return { limited: false, remaining: maxRequests - current - 1, ip };
   } catch {
-    // If rate limit check fails, allow the request through
     return { limited: false, remaining: maxRequests, ip };
   }
 }
 
 // ── Input Sanitization ──
-// Strips prompt injection attempts and dangerous characters from user inputs
 export function sanitizeInput(input, maxLength = 100) {
   if (typeof input !== "string") return "";
-
   return input
     .slice(0, maxLength)
-    // Remove common prompt injection patterns
     .replace(/ignore\s+(previous|all|above)\s+instructions?/gi, "")
     .replace(/you\s+are\s+now/gi, "")
     .replace(/system\s*:/gi, "")
     .replace(/assistant\s*:/gi, "")
     .replace(/human\s*:/gi, "")
-    .replace(/<\|.*?\|>/g, "")           // LLM special tokens
-    .replace(/\[INST\].*?\[\/INST\]/g, "") // Llama injection
-    .replace(/```[\s\S]*?```/g, "")      // Code blocks
-    // Remove HTML/script tags
+    .replace(/<\|.*?\|>/g, "")
+    .replace(/\[INST\].*?\[\/INST\]/g, "")
+    .replace(/```[\s\S]*?```/g, "")
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<[^>]+>/g, "")
-    // Normalize whitespace
     .trim();
 }
 
-// ── Token Encryption ──
-// Simple XOR encryption for LinkedIn tokens stored in KV
-// Uses ENCRYPTION_KEY env var — add this to Vercel environment variables
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "postflow-default-key-change-me";
+// ── AES-256-GCM Encryption ──
+// Uses ENCRYPTION_KEY env var (must be exactly 32 bytes / 64 hex chars)
+// Format stored in KV: iv:authTag:ciphertext (all base64)
+
+function getEncryptionKey() {
+  const raw = process.env.ENCRYPTION_KEY || "";
+  // If key is a hex string (64 chars), convert to buffer
+  if (/^[0-9a-fA-F]{64}$/.test(raw)) {
+    return Buffer.from(raw, "hex");
+  }
+  // Otherwise derive a 32-byte key by hashing the string
+  const { createHash } = require("crypto");
+  return createHash("sha256").update(raw).digest();
+}
 
 export function encryptToken(token) {
   if (!token) return "";
-  const key = ENCRYPTION_KEY;
-  let result = "";
-  for (let i = 0; i < token.length; i++) {
-    result += String.fromCharCode(token.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+  try {
+    const key = getEncryptionKey();
+    const iv = randomBytes(12); // 96-bit IV for GCM
+    const cipher = createCipheriv("aes-256-gcm", key, iv);
+
+    const encrypted = Buffer.concat([
+      cipher.update(token, "utf8"),
+      cipher.final(),
+    ]);
+    const authTag = cipher.getAuthTag(); // 16-byte authentication tag
+
+    // Store as base64 segments separated by colons
+    return [
+      iv.toString("base64"),
+      authTag.toString("base64"),
+      encrypted.toString("base64"),
+    ].join(":");
+  } catch (err) {
+    console.error("Encryption error:", err.message);
+    return "";
   }
-  return Buffer.from(result).toString("base64");
 }
 
-export function decryptToken(encrypted) {
-  if (!encrypted) return "";
+export function decryptToken(encryptedData) {
+  if (!encryptedData) return "";
   try {
-    const token = Buffer.from(encrypted, "base64").toString();
-    const key = ENCRYPTION_KEY;
-    let result = "";
-    for (let i = 0; i < token.length; i++) {
-      result += String.fromCharCode(token.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    const parts = encryptedData.split(":");
+
+    // Handle legacy XOR-encrypted tokens (base64 but no colons = old format)
+    if (parts.length !== 3) {
+      console.log("Legacy token format detected — cannot decrypt, will need re-auth");
+      return "";
     }
-    return result;
-  } catch { return ""; }
+
+    const [ivB64, authTagB64, ciphertextB64] = parts;
+    const key = getEncryptionKey();
+    const iv = Buffer.from(ivB64, "base64");
+    const authTag = Buffer.from(authTagB64, "base64");
+    const ciphertext = Buffer.from(ciphertextB64, "base64");
+
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(authTag);
+
+    const decrypted = Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]);
+
+    return decrypted.toString("utf8");
+  } catch (err) {
+    console.error("Decryption error:", err.message);
+    return "";
+  }
 }
 
 // ── Security Headers ──
-// Call this on every response
 export function setSecurityHeaders(res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
