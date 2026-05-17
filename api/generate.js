@@ -1,4 +1,6 @@
-// api/generate.js
+// api/generate.js — with rate limiting, input sanitization, security headers
+import { rateLimit, sanitizeInput, setSecurityHeaders } from "./middleware.js";
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = "claude-sonnet-4-5";
 
@@ -19,12 +21,9 @@ async function callClaude(prompt, retries = 2) {
     });
 
     if (res.status === 429) {
-      // Rate limited — wait and retry
       const retryAfter = parseInt(res.headers.get("retry-after") || "15", 10);
-      const wait = retryAfter * 1000;
-      console.log(`Rate limited on attempt ${attempt}, waiting ${retryAfter}s...`);
       if (attempt < retries) {
-        await new Promise(r => setTimeout(r, wait));
+        await new Promise(r => setTimeout(r, retryAfter * 1000));
         continue;
       }
       throw new Error("Rate limit hit — please wait a moment and try again.");
@@ -41,22 +40,31 @@ async function callClaude(prompt, retries = 2) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  setSecurityHeaders(res);
+
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // Rate limit: 20 requests per minute per IP
+  const limit = await rateLimit(req, 20, 60);
+  if (limit.limited) {
+    return res.status(429).json({ error: "Too many requests — please wait a minute.", isRateLimit: true });
   }
 
   const { article, tone } = req.body;
-  if (!article || !tone) {
-    return res.status(400).json({ error: "Missing article or tone" });
-  }
+  if (!article || !tone) return res.status(400).json({ error: "Missing article or tone" });
+
+  // Sanitize inputs before using in prompt
+  const safeTitle = sanitizeInput(article.title, 200);
+  const safeUrl = sanitizeInput(article.url, 300);
+  const safeSummary = sanitizeInput(article.summary, 500);
+  const safeToneDesc = sanitizeInput(tone.desc, 100);
 
   try {
-    // Concise prompt to minimize token usage
-    const prompt = `Write a LinkedIn post. Tone: ${tone.desc}.
+    const prompt = `Write a LinkedIn post about this article. Tone: ${safeToneDesc}.
 
-Article: ${article.title}
-URL: ${article.url}
-Summary: ${article.summary}
+Article: ${safeTitle}
+URL: ${safeUrl}
+Summary: ${safeSummary}
 
 Rules: hook opening (not "I"), 150-200 words, include URL, end with #IBM #AI + 2 hashtags, close with a question. Post text only.`;
 
@@ -67,7 +75,6 @@ Rules: hook opening (not "I"), 150-200 words, include URL, end with #IBM #AI + 2
 
   } catch (err) {
     console.error("Generate error:", err.message);
-    // Pass rate limit errors with a specific flag so the client can show a friendly message
     const isRateLimit = err.message.includes("Rate limit") || err.message.includes("rate limit");
     return res.status(isRateLimit ? 429 : 500).json({ error: err.message, isRateLimit });
   }

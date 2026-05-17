@@ -1,19 +1,36 @@
-// api/post.js
-// Publishes a post to LinkedIn and tracks it in KV for engagement monitoring
+// api/post.js — with rate limiting, token encryption, security headers
+import { rateLimit, encryptToken, setSecurityHeaders } from "./middleware.js";
+
+const KV_URL = process.env.KV_REST_API_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+
+async function kvSet(key, value, exSeconds = 604800) {
+  try {
+    await fetch(`${KV_URL}/set/${encodeURIComponent(key)}/${encodeURIComponent(JSON.stringify(value))}?ex=${exSeconds}`, {
+      headers: { Authorization: `Bearer ${KV_TOKEN}` },
+    });
+  } catch (e) { console.log("KV set error:", e.message); }
+}
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  setSecurityHeaders(res);
+
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // Rate limit: 5 posts per minute per IP (posting is high-value action)
+  const limit = await rateLimit(req, 5, 60);
+  if (limit.limited) {
+    return res.status(429).json({ error: "Too many requests. Please wait before posting again." });
   }
 
   const { token, urn, text, tone, articleTitle, articleUrl } = req.body;
+  if (!token || !urn || !text) return res.status(400).json({ error: "Missing required fields" });
 
-  if (!token || !urn || !text) {
-    return res.status(400).json({ error: "Missing token, urn, or text" });
-  }
+  // Basic content validation — prevent empty or excessively long posts
+  if (text.length < 50) return res.status(400).json({ error: "Post content too short" });
+  if (text.length > 3000) return res.status(400).json({ error: "Post content too long" });
 
   try {
-    // Publish to LinkedIn
     const postRes = await fetch("https://api.linkedin.com/v2/ugcPosts", {
       method: "POST",
       headers: {
@@ -30,37 +47,30 @@ export default async function handler(req, res) {
             shareMediaCategory: "NONE",
           },
         },
-        visibility: {
-          "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
-        },
+        visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
       }),
     });
 
     const postData = await postRes.json();
-
-    if (!postRes.ok) {
-      throw new Error(postData.message || postData.error || `LinkedIn API error ${postRes.status}`);
-    }
+    if (!postRes.ok) throw new Error(postData.message || `LinkedIn API error ${postRes.status}`);
 
     const postId = postData.id;
-    console.log("Published LinkedIn post:", postId);
+    console.log("Published post:", postId);
 
-    // Track the post in KV for engagement monitoring
-    // Fire and forget — don't fail the post if tracking fails
+    // Track post — encrypt token before storing in KV
     try {
-      await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://ibm-linkedin-agent.vercel.app"}/api/track`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          postId,
-          tone: tone || "unknown",
-          articleTitle: articleTitle || "",
-          articleUrl: articleUrl || "",
-          token,
-          urn,
-        }),
+      const encryptedToken = encryptToken(token);
+      await kvSet(`post:${postId}`, {
+        postId, tone: tone || "unknown",
+        articleTitle: articleTitle || "",
+        articleUrl: articleUrl || "",
+        urn, publishedAt: new Date().toISOString(),
+        engagement: { likes: 0, comments: 0, shares: 0 },
+        score: 0, checked: false,
       });
-      console.log("Post tracked successfully");
+      // Store encrypted token for engagement tracking
+      await kvSet(`token:${urn}`, encryptedToken, 5184000); // 60 days
+      console.log("Post tracked with encrypted token");
     } catch (trackErr) {
       console.log("Tracking failed (non-fatal):", trackErr.message);
     }
