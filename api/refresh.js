@@ -1,6 +1,7 @@
-// api/refresh.js
+// api/refresh.js — multi-tenant
 import { rateLimit, sanitizeInput, setSecurityHeaders } from "./middleware.js";
 import { auditLog, ACTIONS } from "./audit.js";
+import { getTenantId, tenantKey } from "./tenant.js";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const TAVILY_API_KEY    = process.env.TAVILY_API_KEY;
@@ -74,21 +75,24 @@ export default async function handler(req, res) {
     const today = new Date();
 
     if (!/^[a-zA-Z0-9][a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}/.test(site)) {
-      return res.status(400).json({ error: "Invalid site format. Use a domain like ibm.com" });
+      return res.status(400).json({ error: "Invalid site format" });
     }
 
-    const cacheKey = `articles:${site}:${topic}`.toLowerCase().replace(/[^a-z0-9:.]/g, "-");
+    // Tenant-scoped cache key — each client gets their own article cache
+    const tenantId  = getTenantId(req);
+    const cacheKey  = tenantKey(tenantId, `articles:${site}:${topic}`.toLowerCase().replace(/[^a-z0-9:.]/g, "-"));
 
     if (!force) {
       const cached = await kvGet(cacheKey);
       if (cached?.articles?.length > 0) {
-        await auditLog(ACTIONS.SEARCH, { site, topic, cached: true, resultCount: cached.articles.length }, req);
+        console.log(`Cache hit: ${cacheKey}`);
+        await auditLog(ACTIONS.SEARCH, { site, topic, cached: true, resultCount: cached.articles.length, tenantId }, req);
         return res.status(200).json({ ...cached, fromCache: true });
       }
     }
 
-    console.log(`Tavily search: ${topic} from ${site}`);
-    const results = await tavilySearch(`${topic} site:${site}`);
+    console.log(`Tavily search [${tenantId}]: ${topic} from ${site}`);
+    const results  = await tavilySearch(`${topic} site:${site}`);
     if (!results.length) throw new Error(`No results found for ${topic} on ${site}`);
 
     const raw      = await formatWithClaude(results, site, topic);
@@ -102,9 +106,7 @@ export default async function handler(req, res) {
     };
 
     await kvSet(cacheKey, result, 86400);
-
-    // Audit log the search
-    await auditLog(ACTIONS.SEARCH, { site, topic, cached: false, resultCount: articles.length }, req);
+    await auditLog(ACTIONS.SEARCH, { site, topic, cached: false, resultCount: articles.length, tenantId }, req);
 
     return res.status(200).json(result);
 

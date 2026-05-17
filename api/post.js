@@ -1,9 +1,10 @@
-// api/post.js
+// api/post.js — multi-tenant
 import { rateLimit, encryptToken, setSecurityHeaders } from "./middleware.js";
 import { auditLog, ACTIONS } from "./audit.js";
 import { requireAuth } from "./clerk-auth.js";
+import { getTenantId, tenantKey } from "./tenant.js";
 
-const KV_URL = process.env.KV_REST_API_URL;
+const KV_URL   = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
 async function kvSet(key, value, exSeconds = 604800) {
@@ -18,11 +19,9 @@ export default async function handler(req, res) {
   setSecurityHeaders(res);
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // Verify Clerk session
   const auth = await requireAuth(req, res);
   if (!auth.authenticated) return;
 
-  // Rate limit: 5 posts per minute
   const limit = await rateLimit(req, 5, 60);
   if (limit.limited) {
     await auditLog(ACTIONS.RATE_LIMITED, { endpoint: "/api/post", ip: limit.ip }, req);
@@ -53,29 +52,27 @@ export default async function handler(req, res) {
     const postData = await postRes.json();
     if (!postRes.ok) throw new Error(postData.message || `LinkedIn API error ${postRes.status}`);
 
-    const postId = postData.id;
-    console.log("Published post:", postId);
+    const postId   = postData.id;
+    const tenantId = getTenantId(req);
+    console.log(`Published post [${tenantId}]:`, postId);
 
-    // Audit log the publish event
     await auditLog(ACTIONS.PUBLISH, {
-      postId,
-      tone: tone || "unknown",
+      postId, tone: tone || "unknown",
       articleTitle: articleTitle || "",
-      articleUrl: articleUrl || "",
-      urn,
-      postLength: text.length,
+      urn, postLength: text.length, tenantId,
     }, req);
 
-    // Track + encrypt token in KV
+    // Store post and encrypted token under tenant-scoped keys
     try {
       const encryptedToken = encryptToken(token);
-      await kvSet(`post:${postId}`, {
+      await kvSet(tenantKey(tenantId, `post:${postId}`), {
         postId, tone: tone || "unknown",
         articleTitle: articleTitle || "", articleUrl: articleUrl || "",
-        urn, publishedAt: new Date().toISOString(),
+        urn, tenantId,
+        publishedAt: new Date().toISOString(),
         engagement: { likes: 0, comments: 0, shares: 0 }, score: 0, checked: false,
       });
-      await kvSet(`token:${urn}`, encryptedToken, 5184000);
+      await kvSet(tenantKey(tenantId, `token:${urn}`), encryptedToken, 5184000);
     } catch (trackErr) {
       console.log("Tracking failed (non-fatal):", trackErr.message);
     }
