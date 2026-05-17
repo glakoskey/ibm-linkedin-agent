@@ -704,9 +704,13 @@ document.getElementById("generate-btn").onclick = async () => {
   document.getElementById("post-section").scrollIntoView({ behavior:"smooth", block:"start" });
 
   async function attemptGenerate(retryCount = 0) {
+    const clerkToken = await getClerkToken();
     const res = await fetch("/api/generate", {
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{
+        "Content-Type":"application/json",
+        ...(clerkToken ? {"Authorization": `Bearer ${clerkToken}`} : {}),
+      },
       body: JSON.stringify({ article, tone }),
     });
     const data = await res.json();
@@ -761,9 +765,13 @@ async function postToLinkedIn() {
   const article = selectedIdx !== null ? articles[selectedIdx] : null;
 
   try {
+    const clerkToken = await getClerkToken();
     const res = await fetch("/api/post", {
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{
+        "Content-Type":"application/json",
+        ...(clerkToken ? {"Authorization": `Bearer ${clerkToken}`} : {}),
+      },
       body: JSON.stringify({
         token: liToken,
         urn: liUrn,
@@ -1000,6 +1008,17 @@ function dismissBreakingNews() {
 }
 
 // ── Clerk Authentication ──
+async function getClerkToken() {
+  try {
+    if (window.Clerk?.session) {
+      return await window.Clerk.session.getToken();
+    }
+  } catch (e) {
+    console.log("Could not get Clerk token:", e.message);
+  }
+  return null;
+}
+
 async function initClerk() {
   try {
     await window.Clerk.load();
