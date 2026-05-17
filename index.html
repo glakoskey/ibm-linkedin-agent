@@ -550,17 +550,11 @@ function showConnected() {
 }
 
 function connectLinkedIn() {
-  // Clear stale session before starting fresh OAuth flow
   sessionStorage.removeItem("li_token");
   sessionStorage.removeItem("li_urn");
   sessionStorage.removeItem("li_name");
   localStorage.removeItem("li_title");
   liToken = null; liUrn = null; liName = null;
-
-  // Store pending auth flag — helps mobile detect incomplete flows
-  sessionStorage.setItem("li_auth_pending", "1");
-  sessionStorage.setItem("li_auth_started", Date.now().toString());
-
   window.location.href = "/api/auth/login";
 }
 
