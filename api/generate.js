@@ -1,6 +1,7 @@
 // api/generate.js
 import { rateLimit, sanitizeInput, setSecurityHeaders } from "./middleware.js";
 import { auditLog, ACTIONS } from "./audit.js";
+import { requireAuth } from "./clerk-auth.js";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = "claude-sonnet-4-5";
@@ -31,6 +32,10 @@ async function callClaude(prompt, retries = 2) {
 export default async function handler(req, res) {
   setSecurityHeaders(res);
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // Verify Clerk session
+  const auth = await requireAuth(req, res);
+  if (!auth.authenticated) return;
 
   // Rate limit
   const limit = await rateLimit(req, 20, 60);
