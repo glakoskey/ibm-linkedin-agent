@@ -478,6 +478,35 @@ let liHeadline = null;
 // ── Check for OAuth callback params ──
 function handleOAuthCallback() {
   const params = new URLSearchParams(window.location.search);
+
+  // Check for incomplete mobile OAuth flow
+  const pending = sessionStorage.getItem("li_auth_pending");
+  const started = parseInt(sessionStorage.getItem("li_auth_started") || "0");
+  const elapsed = Date.now() - started;
+
+  // If we returned without auth params but had a pending auth
+  // and it was recent (within 5 minutes), show a helpful retry message
+  if (pending && !params.get("auth_success") && !params.get("auth_error") && elapsed < 300000) {
+    sessionStorage.removeItem("li_auth_pending");
+    sessionStorage.removeItem("li_auth_started");
+    // Show retry button with mobile-friendly message
+    setTimeout(() => {
+      const connectBanner = document.getElementById("li-connect-banner");
+      if (connectBanner) {
+        connectBanner.innerHTML += `<div style="margin-top:8px;padding:8px 12px;background:rgba(255,140,0,0.1);border:1px solid #ff8c00;border-radius:6px;font-size:12px;color:#ff8c00;text-align:center">
+          LinkedIn verification completed — tap <strong>Connect LinkedIn</strong> again to finish connecting.
+        </div>`;
+      }
+    }, 500);
+    return;
+  }
+
+  // Clear pending flag if auth succeeded or explicitly failed
+  if (params.get("auth_success") || params.get("auth_error")) {
+    sessionStorage.removeItem("li_auth_pending");
+    sessionStorage.removeItem("li_auth_started");
+  }
+
   if (params.get("auth_success")) {
     liToken = params.get("token");
     liUrn = params.get("urn");
@@ -521,11 +550,17 @@ function showConnected() {
 }
 
 function connectLinkedIn() {
-  // Always clear stale session before starting a fresh OAuth flow
+  // Clear stale session before starting fresh OAuth flow
   sessionStorage.removeItem("li_token");
   sessionStorage.removeItem("li_urn");
   sessionStorage.removeItem("li_name");
+  localStorage.removeItem("li_title");
   liToken = null; liUrn = null; liName = null;
+
+  // Store pending auth flag — helps mobile detect incomplete flows
+  sessionStorage.setItem("li_auth_pending", "1");
+  sessionStorage.setItem("li_auth_started", Date.now().toString());
+
   window.location.href = "/api/auth/login";
 }
 
