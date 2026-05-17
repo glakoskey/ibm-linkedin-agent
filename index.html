@@ -8,6 +8,11 @@
   <meta property="og:title" content="SentinelPost AI | CloudSentinel-AI" />
   <meta property="og:description" content="SentinelPost AI — find articles, generate posts, publish to LinkedIn instantly. Built by CloudSentinel-AI." />
   <!-- Clerk Authentication -->
+  <style>
+    /* Hide Clerk sign-up footer — invite only app */
+    .cl-footerAction, .cl-footer, [data-localization-key="signIn.start.actionLink"],
+    .cl-card__footer, .cl-signIn-root .cl-footer { display: none !important; }
+  </style>
   <script
     async
     crossorigin="anonymous"
